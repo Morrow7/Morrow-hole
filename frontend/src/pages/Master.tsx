@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import resMethod from "../tools/resMethod.ts";
 import TextType from "../computed/reactbits/TextType.tsx";
 import DecryptedText from "../computed/reactbits/DecryptedText.tsx";
