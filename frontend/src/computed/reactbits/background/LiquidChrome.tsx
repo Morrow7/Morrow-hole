@@ -12,7 +12,7 @@ interface LiquidChromeProps extends React.HTMLAttributes<HTMLDivElement> {
 
 export const LiquidChrome: React.FC<LiquidChromeProps> = ({
   baseColor = [0.1, 0.1, 0.1],
-  speed = 0.2,
+  speed = 0.3,
   amplitude = 0.5,
   frequencyX = 3,
   frequencyY = 2,
@@ -109,7 +109,7 @@ export const LiquidChrome: React.FC<LiquidChromeProps> = ({
       const scale = 1;
       renderer.setSize(
         container.offsetWidth * scale,
-        container.offsetHeight * scale
+        container.offsetHeight * scale,
       );
       const resUniform = program.uniforms.uResolution.value as Float32Array;
       resUniform[0] = gl.canvas.width;
@@ -170,11 +170,7 @@ export const LiquidChrome: React.FC<LiquidChromeProps> = ({
   }, [baseColor, speed, amplitude, frequencyX, frequencyY, interactive]);
 
   return (
-    <div
-      ref={containerRef}
-      className="w-full h-full z-0 fixed"
-      {...props}
-    />
+    <div ref={containerRef} className="w-full h-full z-0 fixed" {...props} />
   );
 };
 

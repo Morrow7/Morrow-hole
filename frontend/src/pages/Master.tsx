@@ -46,10 +46,9 @@ export default function Master() {
             <TextType
               text={[
                 "Hi !",
-                "I am PK.",
+                "I am Morrow.",
                 "Software engineer",
                 "quantitative researcher",
-                "Minecraft player",
               ]}
               typingSpeed={150}
               pauseDuration={1500}
@@ -59,8 +58,9 @@ export default function Master() {
             />
           </h1>
           <p className="text-gray-800 text-xl py-4 font-bold">
+            {/*文字解密动画效果*/}
             <DecryptedText
-              text="Welcome to my blog :)"
+              text="Welcome to my blog "
               animateOn="view"
               speed={150}
               revealDirection="center"

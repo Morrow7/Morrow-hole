@@ -8,7 +8,6 @@ import { GithubIcon, QQIcon, GiteeIcon } from "../computed/Icons";
 import resMethod from "../tools/resMethod";
 
 export default function About() {
-
   interface Span {
     id: number;
     text: string;
@@ -27,19 +26,16 @@ export default function About() {
   const [nowList, setNowList] = useState<Span[]>([{ id: 0, text: "🤔 " }]);
   const [aboutData, setAboutData] = useState<Span[]>([{ id: 0, text: "🤔 " }]);
 
-
-  const [imgUrl] = useState(
-    "https://foruda.gitee.com/avatar/1735578534702305405/15325054_rustlove_1735578534.png!avatar100"
-  );
+  const [imgUrl] = useState("/src/assets/avater.jpg");
 
   useEffect(() => {
     resMethod("/about/now", "GET").then((res) => {
       setNowList(res);
     });
 
-    resMethod("/about", "GET").then((res)=> {
-      setAboutData(res)
-    })
+    resMethod("/about", "GET").then((res) => {
+      setAboutData(res);
+    });
   }, []);
 
   // 动画配置
@@ -80,7 +76,7 @@ export default function About() {
               firstContent={
                 <img
                   src={imgUrl}
-                  alt="PK 的头像"
+                  alt="Y 的头像"
                   style={{
                     width: "100%",
                     height: "100%",
@@ -138,13 +134,10 @@ export default function About() {
               variants={itemVariants}
             >
               <span className="bg-gradient-to-r from-amber-600 to-amber-400 bg-clip-text text-transparent">
-                PK
+                Y
               </span>
               <br />
-              <span className=" text-gray-600">
-                
-                Idealist
-              </span>
+              <span className=" text-gray-600">Idealist</span>
             </motion.h1>
 
             <motion.div
@@ -152,7 +145,7 @@ export default function About() {
               variants={itemVariants}
             >
               {aboutData.map((item) => {
-                return <p>{item.text}</p>
+                return <p>{item.text}</p>;
               })}
             </motion.div>
 
@@ -174,12 +167,12 @@ export default function About() {
                   label="QQ"
                 />
                 <SocialLink
-                  href="https://gitee.com/rustlove"
+                  href="https://gitee.com/susu7923"
                   icon={<GiteeIcon />}
                   label="Gitee"
                 />
                 <SocialLink
-                  href="https://github.com/EnderRomantice"
+                  href="https://github.com/Y7624"
                   icon={<GithubIcon />}
                   label="Github"
                 />

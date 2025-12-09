@@ -53,7 +53,7 @@ interface IridescenceProps {
 
 export default function Iridescence({
   color = [1, 1, 1],
-  speed = 1.0,
+  speed = 1.2,
   amplitude = 0.1,
   mouseReact = true,
   ...rest
@@ -77,7 +77,7 @@ export default function Iridescence({
         program.uniforms.uResolution.value = new Color(
           gl.canvas.width,
           gl.canvas.height,
-          gl.canvas.width / gl.canvas.height
+          gl.canvas.width / gl.canvas.height,
         );
       }
     }
@@ -95,10 +95,12 @@ export default function Iridescence({
           value: new Color(
             gl.canvas.width,
             gl.canvas.height,
-            gl.canvas.width / gl.canvas.height
+            gl.canvas.width / gl.canvas.height,
           ),
         },
-        uMouse: { value: new Float32Array([mousePos.current.x, mousePos.current.y]) },
+        uMouse: {
+          value: new Float32Array([mousePos.current.x, mousePos.current.y]),
+        },
         uAmplitude: { value: amplitude },
         uSpeed: { value: speed },
       },
@@ -138,11 +140,5 @@ export default function Iridescence({
     };
   }, [color, speed, amplitude, mouseReact]);
 
-  return (
-    <div
-      ref={ctnDom}
-      className="w-full h-full fixed z-0"
-      {...rest}
-    />
-  );
+  return <div ref={ctnDom} className="w-full h-full fixed z-0" {...rest} />;
 }
