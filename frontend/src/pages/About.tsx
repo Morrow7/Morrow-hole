@@ -4,7 +4,7 @@ import { useInView } from "react-intersection-observer";
 import TechStackCard from "../computed/TechStackCard";
 import SocialLink from "../computed/SocialLink";
 import PixelTransition from "../computed/reactbits/PixelTransition";
-import { GithubIcon, QQIcon, GiteeIcon } from "../computed/Icons";
+import { GithubIcon, QQIcon, GiteeIcon, TwitterIcon } from "../computed/Icons";
 import resMethod from "../tools/resMethod";
 
 export default function About() {
@@ -162,9 +162,9 @@ export default function About() {
                 variants={itemVariants}
               >
                 <SocialLink
-                  href="https://rustlove.blog/files/photo/qq.jpg"
-                  icon={<QQIcon />}
-                  label="QQ"
+                  href="https://pbs.twimg.com/profile_images/2002373229852135424/H453-yww_400x400.jpg"
+                  icon={<TwitterIcon />}
+                  label="X"
                 />
                 <SocialLink
                   href="https://gitee.com/susu7923"
@@ -172,7 +172,7 @@ export default function About() {
                   label="Gitee"
                 />
                 <SocialLink
-                  href="https://github.com/Y7624"
+                  href="https://github.com/Morrow7"
                   icon={<GithubIcon />}
                   label="Github"
                 />

@@ -37,7 +37,7 @@ export default function TechStackCard() {
     },
     {
       name: "Python",
-      level: 60,
+      level: 10,
       category: "backend",
       icon: "https://th.bing.com/th/id/ODF.SWId9aBgwQh4GYX8Nki9BA?w=32&h=32&qlt=90&pcl=fffffa&o=6&cb=12&pid=1.2",
     },
@@ -46,18 +46,6 @@ export default function TechStackCard() {
       level: 50,
       category: "backend",
       icon: "https://th.bing.com/th/id/ODF.yDzcbj5o-mHlIWot-A2fyQ?w=32&h=32&qlt=90&pcl=fffffa&o=6&cb=12&pid=1.2",
-    },
-    {
-      name: "Go",
-      level: 30,
-      category: "backend",
-      icon: "https://th.bing.com/th/id/ODF.HcSOJGKbi4khTMFQYDxyIA?w=32&h=32&qlt=90&pcl=fffffa&o=6&cb=12&pid=1.2",
-    },
-    {
-      name: "Rust",
-      level: 10,
-      category: "backend",
-      icon: "https://th.bing.com/th/id/OSK.0a110922e307ea9e7b5768056db7ffc8?w=46&h=46&c=11&rs=1&qlt=80&o=6&cb=12&dpr=1.3&pid=SANGAM",
     },
     {
       name: "MySQL",

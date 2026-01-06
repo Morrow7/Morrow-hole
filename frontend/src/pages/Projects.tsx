@@ -31,10 +31,13 @@ export default function Projects() {
   useEffect(() => {
     resMethod("/projects", "GET")
       .then((res) => {
+        const filterProjects = (list: Project[]) =>
+          list.filter((project) => project.title !== "Ant's agent");
+
         if (Array.isArray(res.data)) {
-          setProjects(res.data);
+          setProjects(filterProjects(res.data));
         } else if (Array.isArray(res)) {
-          setProjects(res);
+          setProjects(filterProjects(res));
         } else {
           console.error("Invalid projects response:", res);
           setProjects([]);
