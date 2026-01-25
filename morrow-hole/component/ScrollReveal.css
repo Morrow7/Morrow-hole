@@ -1,0 +1,9 @@
+.scroll-reveal {
+  /* opacity: 0;  <-- Removed this to prevent text from being hidden if JS/animation fails */
+  transform: translateY(0);
+}
+
+.scroll-reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
