@@ -1,7 +1,18 @@
 "use client";
 import PixelSnow from '../component/PixeSnow';
 import ScrollReveal from '../component/ScrollReveal';
+import Dock from '../component/Dock';
+import { Home as HomeIcon, Music, User, Info } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+
 export default function Home() {
+    const router = useRouter();
+    const items = [
+        { icon: <HomeIcon size={18} />, label: 'Article', onClick: () => router.push('/article') },
+        { icon: <Music size={18} />, label: 'Music', onClick: () => router.push('/music') },
+        { icon: <User size={18} />, label: 'Daily', onClick: () => router.push('/Daily') },
+        { icon: <Info size={18} />, label: 'About', onClick: () => router.push('/about') },
+    ];
     return (
         <>
             <div className="relative w-full h-screen overflow-hidden flex items-center justify-center">
@@ -46,26 +57,13 @@ export default function Home() {
                          If we have the same hobbies, 
                          we can become friends.`}
                     </ScrollReveal>
-                    <div className="mt-10 flex justify-center space-x-8">
-                        <button
-                            className="px-8 py-3 rounded-full backdrop-blur-md transition-all duration-300 shadow-lg border border-white/10 bg-white/10 text-white hover:bg-white/20 hover:scale-105"
-                            onClick={() => window.location.href = '/article'}
-                        >
-                            Article
-                        </button>
-                        <button
-                            className="px-8 py-3 rounded-full backdrop-blur-md transition-all duration-300 shadow-lg border border-white/10 bg-white/10 text-white hover:bg-white/20 hover:scale-105"
-                            onClick={() => window.location.href = '/music'}
-                        >
-                            Music
-                        </button>
-                        <button
-                            className="px-8 py-3 rounded-full backdrop-blur-md transition-all duration-300 shadow-lg border border-white/10 bg-white/10 text-white hover:bg-white/20 hover:scale-105"
-                            onClick={() => window.location.href = '/about'}
-                        >
-                            About
-                        </button>
-
+                    <div className="mt-0 flex justify-center space-x-8">
+                        <Dock
+                            items={items}
+                            panelHeight={68}
+                            baseItemSize={50}
+                            magnification={70}
+                        />
                     </div>
                 </div>
             </div>

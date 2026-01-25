@@ -16,7 +16,7 @@ export default function BackgroundMusic() {
     const attemptPlay = async () => {
       try {
         await audio.play();
-      } catch (err) {
+      } catch {
         console.log("Autoplay prevented, waiting for user interaction");
 
         // 如果自动播放失败，添加一次性事件监听器
