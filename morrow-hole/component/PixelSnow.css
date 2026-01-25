@@ -1,0 +1,9 @@
+.pixel-snow-container {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+.pixel-snow-container canvas {
+    display: block;
+}
