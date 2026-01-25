@@ -39,7 +39,7 @@ export default function Home() {
                         {`Hello everyone, I'm Morrow. 
                         This is my little cave. 
                         Welcome! I'm a front-end engineer. 
-                        Sometimes I share articles and English here, 
+                        Sometimes I share articles and music here, 
                         maybe some technical sharing as well.
                          I like folk music and cats. 
                          I'm a lazy person. 
@@ -61,7 +61,7 @@ export default function Home() {
                         </button>
                         <button
                             className="px-8 py-3 rounded-full backdrop-blur-md transition-all duration-300 shadow-lg border border-white/10 bg-white/10 text-white hover:bg-white/20 hover:scale-105"
-                            onClick={() => window.location.href = '/About'}
+                            onClick={() => window.location.href = '/about'}
                         >
                             About
                         </button>
