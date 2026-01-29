@@ -39,7 +39,11 @@ export default function ArticleDetailPage() {
   const clientId = process.env.NEXT_PUBLIC_CLIENT_ID ?? "";
 
   const handleGithubLogin = () => {
-    if (!clientId) return;
+    if (!clientId) {
+      setAuthStatus("error");
+      setAuthError("未配置 NEXT_PUBLIC_CLIENT_ID（Vercel 环境变量），请配置后重新部署");
+      return;
+    }
     const redirectUri = `${window.location.origin}/api/auth/callback`;
     const authUrl = `https://github.com/login/oauth/authorize?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}`;
     window.location.href = authUrl;
@@ -175,7 +179,7 @@ export default function ArticleDetailPage() {
           <div className="mt-6 space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4">
             <button
               onClick={handleGithubLogin}
-              disabled={!clientId || authStatus === "loading" || authStatus === "authed"}
+              disabled={authStatus === "loading" || authStatus === "authed"}
               className="w-40 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm text-white/80 transition-all hover:bg-white/20 disabled:opacity-50"
             >
               {authStatus === "authed" ? `已登录：${authorName}` : authStatus === "loading" ? "登录中..." : "github登录"}
