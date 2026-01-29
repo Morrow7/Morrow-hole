@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server"
-import pool from "@/lib/db"
+import { getPool } from "@/lib/db"
 import type { RowDataPacket } from "mysql2/promise"
 import { promises as fs } from "node:fs"
 import path from "node:path"
@@ -10,6 +10,7 @@ type PostRow = RowDataPacket & {
 }
 
 export async function GET(request: NextRequest, context: { params: Promise<{ slug: string }> }) {
+  const pool = getPool()
   const { slug: slugRaw } = await context.params
   let slug = slugRaw
   try {

@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server"
-import pool from "@/lib/db"
+import { getPool } from "@/lib/db"
 import type { RowDataPacket } from "mysql2/promise"
 
 type MediaRow = RowDataPacket & {
@@ -8,6 +8,7 @@ type MediaRow = RowDataPacket & {
 }
 
 async function ensureDailyPostsTable() {
+  const pool = getPool()
   await pool.query(
     "CREATE TABLE IF NOT EXISTS daily_posts (id INT AUTO_INCREMENT PRIMARY KEY, content TEXT NOT NULL, media_type ENUM('none','image','video') NOT NULL DEFAULT 'none', media_mime VARCHAR(64) NULL, media_blob LONGBLOB NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, INDEX idx_created_at (created_at)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
   )
@@ -15,6 +16,7 @@ async function ensureDailyPostsTable() {
 
 export async function GET(request: NextRequest) {
   await ensureDailyPostsTable()
+  const pool = getPool()
   const idRaw = request.nextUrl.searchParams.get("id") ?? ""
   const id = Number(idRaw)
   if (!Number.isFinite(id) || id <= 0) {

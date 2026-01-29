@@ -1,7 +1,7 @@
 "use client";
 import Galaxy from '../../component/Galaxy';
 import Image from 'next/image';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 type DailyPostItem = {
     id: number
@@ -31,6 +31,31 @@ export default function ArticlePage() {
     const [isCommentPosting, setIsCommentPosting] = useState(false);
     const [commentError, setCommentError] = useState("");
 
+    const normalizeDailyPostItem = (raw: unknown): DailyPostItem | null => {
+        if (!raw || typeof raw !== 'object') return null;
+        const r = raw as Record<string, unknown>;
+
+        const id = typeof r.id === 'number' ? r.id : Number(r.id);
+        if (!Number.isFinite(id) || id <= 0) return null;
+
+        const content = typeof r.content === 'string' ? r.content : '';
+        const mediaType = r.media_type === 'image' || r.media_type === 'video' || r.media_type === 'none' ? r.media_type : 'none';
+        const createdAt = typeof r.created_at === 'string' ? r.created_at : new Date().toISOString();
+        const hasMedia = r.has_media === 1 || r.has_media === 0 ? r.has_media : 0;
+        const likesCount = typeof r.likes_count === 'number' && Number.isFinite(r.likes_count) ? r.likes_count : 0;
+        const commentsCount = typeof r.comments_count === 'number' && Number.isFinite(r.comments_count) ? r.comments_count : 0;
+
+        return {
+            id,
+            content,
+            media_type: mediaType,
+            created_at: createdAt,
+            has_media: hasMedia,
+            likes_count: likesCount,
+            comments_count: commentsCount,
+        };
+    };
+
 
     useEffect(() => {
         return () => {
@@ -43,15 +68,10 @@ export default function ArticlePage() {
             try {
                 const res = await fetch('/api/daily-posts');
                 if (!res.ok) return;
-                const data = await res.json();
-                const nextItems = Array.isArray(data.items) ? data.items : [];
-                setItems(
-                    nextItems.map((it: any) => ({
-                        ...it,
-                        likes_count: Number.isFinite(it?.likes_count) ? it.likes_count : 0,
-                        comments_count: Number.isFinite(it?.comments_count) ? it.comments_count : 0,
-                    }))
-                );
+                const data: unknown = await res.json().catch(() => null);
+                const obj = data && typeof data === 'object' ? (data as Record<string, unknown>) : null;
+                const rawItems = obj && Array.isArray(obj.items) ? obj.items : [];
+                setItems(rawItems.map(normalizeDailyPostItem).filter((x): x is DailyPostItem => x !== null));
             } finally {
                 setIsLoading(false);
             }
@@ -71,9 +91,9 @@ export default function ArticlePage() {
     useEffect(() => {
         try {
             const raw = localStorage.getItem("daily_liked_post_ids") ?? "[]";
-            const parsed = JSON.parse(raw);
+            const parsed: unknown = JSON.parse(raw);
             if (Array.isArray(parsed)) {
-                setLikedPostIds(parsed.filter((x: any) => Number.isFinite(x)));
+                setLikedPostIds(parsed.filter((x): x is number => typeof x === "number" && Number.isFinite(x)));
             }
         } catch { }
     }, []);
@@ -84,7 +104,7 @@ export default function ArticlePage() {
         } catch { }
     }, [likedPostIds]);
 
-    const closePostModal = () => {
+    const closePostModal = useCallback(() => {
         if (mediaPreviewUrl) URL.revokeObjectURL(mediaPreviewUrl);
         setIsPostModalOpen(false);
         setPostMode('text');
@@ -93,7 +113,7 @@ export default function ArticlePage() {
         setMediaPreviewUrl('');
         setIsPosting(false);
         setPostError('');
-    };
+    }, [mediaPreviewUrl]);
 
     useEffect(() => {
         if (!isPostModalOpen) return;
@@ -121,13 +141,13 @@ export default function ArticlePage() {
             }
 
             if (data?.item) {
-                const next = data.item as any;
+                const next = normalizeDailyPostItem(data.item as unknown);
+                if (!next) {
+                    closePostModal();
+                    return;
+                }
                 setItems(prev => [
-                    {
-                        ...next,
-                        likes_count: Number.isFinite(next?.likes_count) ? next.likes_count : 0,
-                        comments_count: Number.isFinite(next?.comments_count) ? next.comments_count : 0,
-                    } as DailyPostItem,
+                    next,
                     ...prev,
                 ]);
             }

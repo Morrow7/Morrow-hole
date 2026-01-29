@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server"
-import pool from "@/lib/db"
+import { getPool } from "@/lib/db"
 import type { ResultSetHeader, RowDataPacket } from "mysql2/promise"
 
 type CommentRow = RowDataPacket & {
@@ -11,6 +11,7 @@ type CommentRow = RowDataPacket & {
 }
 
 async function ensureCommentsTable() {
+  const pool = getPool()
   await pool.query(
     "CREATE TABLE IF NOT EXISTS comments (id INT AUTO_INCREMENT PRIMARY KEY, post_slug VARCHAR(128) NOT NULL, author VARCHAR(64) NOT NULL, content TEXT NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, INDEX idx_post_slug (post_slug)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
   )
@@ -23,6 +24,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ items: [] })
   }
   await ensureCommentsTable()
+  const pool = getPool()
   const [rows] = await pool.query<CommentRow[]>(
     "SELECT id, post_slug, author, content, created_at FROM comments WHERE post_slug = ? ORDER BY created_at DESC",
     [slug]
@@ -44,6 +46,7 @@ export async function POST(request: NextRequest) {
   }
 
   await ensureCommentsTable()
+  const pool = getPool()
   const [result] = await pool.query<ResultSetHeader>(
     "INSERT INTO comments (post_slug, author, content) VALUES (?, ?, ?)",
     [slug, name, content]
