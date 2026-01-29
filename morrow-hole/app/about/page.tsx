@@ -1,26 +1,28 @@
 "use client";
 
 import Galaxy from '../../component/Galaxy';
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 
 export default function ArticlePage() {
-    const friendLinks = [
-        {
-            name: 'tozzi',
-            url: 'https://example.com',
-            desc: 'cs新手,React+FastApi'
-        },
-        {
-            name: 'iuuui',
-            url: 'https://example.com',
-            desc: 'CS在读，React+FastApi'
-        },
-        {
-            name: 'Awiseking',
-            url: 'https://example.com',
-            desc: '一个智慧的王'
-        }
-    ];
+    const [friendLinks, setFriendLinks] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const loadLinks = async () => {
+            try {
+                const res = await fetch('/api/friend-links');
+                if (!res.ok) return;
+                const data = await res.json();
+                setFriendLinks(Array.isArray(data.items) ? data.items : []);
+            } catch {
+                setFriendLinks([]);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        loadLinks();
+    }, []);
 
     return (
         <div className="relative h-screen bg-black text-white overflow-hidden">
@@ -43,7 +45,7 @@ export default function ArticlePage() {
             </div>
             <div className="absolute top-0 left-0 w-full z-20 px-6 pt-6 flex flex-col items-center">
                 <div className="mt-0 flex flex-wrap items-start justify-center gap-10">
-                    {friendLinks.map((item, index) => (
+                    {isLoading ? null : friendLinks.map((item, index) => (
                         <div key={item.name} className="flex flex-col items-center">
                             <div className="w-2 h-2 rounded-full bg-white/70 shadow-[0_0_10px_rgba(255,255,255,0.45)]" />
                             <div className="w-px h-16 bg-white/40" />

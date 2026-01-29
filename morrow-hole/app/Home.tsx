@@ -57,7 +57,7 @@ export default function Home() {
                          If we have the same hobbies, 
                          we can become friends.`}
                     </ScrollReveal>
-                    <div className="mt-0 flex justify-center space-x-8">
+                    <div className="mt-0 flex  justify-center space-x-8">
                         <Dock
                             items={items}
                             panelHeight={68}
