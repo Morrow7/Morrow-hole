@@ -36,16 +36,35 @@ export default function ArticleDetailPage() {
   const [authorName, setAuthorName] = useState("");
   const [authStatus, setAuthStatus] = useState<"idle" | "loading" | "authed" | "error">("idle");
   const [authError, setAuthError] = useState("");
-  const clientId = process.env.NEXT_PUBLIC_CLIENT_ID ?? process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID ?? "";
+  const [oauthClientId, setOauthClientId] = useState(
+    process.env.NEXT_PUBLIC_CLIENT_ID ?? process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID ?? ""
+  );
+
+  useEffect(() => {
+    if (oauthClientId.trim()) return;
+    fetch("/api/auth/client-id")
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => {
+        const id = typeof data?.clientId === "string" ? data.clientId : "";
+        if (id.trim()) setOauthClientId(id);
+      })
+      .catch(() => { });
+  }, [oauthClientId]);
 
   const handleGithubLogin = () => {
+    const clientId = oauthClientId.trim();
     if (!clientId) {
       setAuthStatus("error");
-      setAuthError("未配置 NEXT_PUBLIC_CLIENT_ID 或 NEXT_PUBLIC_GITHUB_CLIENT_ID（Vercel 环境变量），请配置后重新部署");
+      setAuthError("未读取到 GitHub Client ID，请确认已在 Vercel 配置 GITHUB_CLIENT_ID 或 NEXT_PUBLIC_CLIENT_ID 并重新部署");
       return;
     }
-    const redirectUri = `${window.location.origin}/api/auth/callback`;
-    const authUrl = `https://github.com/login/oauth/authorize?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}`;
+    try {
+      localStorage.setItem("post_login_redirect", `${window.location.pathname}${window.location.search}`);
+    } catch { }
+    const redirectUri =
+      (process.env.NEXT_PUBLIC_GITHUB_REDIRECT_URI ?? "").trim() ||
+      `${window.location.origin}/api/auth/callback`;
+    const authUrl = `https://github.com/login/oauth/authorize?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent("read:user")}`;
     window.location.href = authUrl;
   };
 
@@ -54,11 +73,7 @@ export default function ArticleDetailPage() {
     if (!token) return;
     setAuthStatus("loading");
     setAuthError("");
-    fetch("https://api.github.com/user", {
-      headers: {
-        Authorization: `token ${token}`,
-      },
-    })
+    fetch("/api/auth/me", { headers: { Authorization: `Bearer ${token}` } })
       .then(res => (res.ok ? res.json() : Promise.reject(res.status)))
       .then((user: GithubUser) => {
         const name = (user.name ?? "").trim() || user.login || "github";

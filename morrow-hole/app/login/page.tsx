@@ -15,7 +15,9 @@ function OAuthSuccessInner() {
         if (error) return;
         if (token) {
             localStorage.setItem('token', token);
-            router.push('/');
+            const redirectTo = localStorage.getItem("post_login_redirect") || "/Daily";
+            localStorage.removeItem("post_login_redirect");
+            router.push(redirectTo);
             return;
         }
     }, [error, token, router]);
