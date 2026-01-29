@@ -13,6 +13,39 @@ type DailyPostRow = RowDataPacket & {
   has_media: 0 | 1
 }
 
+async function requireGithubAuth(request: NextRequest) {
+  const rawAuth = request.headers.get("authorization") ?? ""
+  const token = rawAuth.startsWith("Bearer ")
+    ? rawAuth.slice("Bearer ".length).trim()
+    : rawAuth.startsWith("token ")
+      ? rawAuth.slice("token ".length).trim()
+      : ""
+
+  if (!token) {
+    return { ok: false as const, response: NextResponse.json({ message: "missing_token" }, { status: 401 }) }
+  }
+
+  const res = await fetch("https://api.github.com/user", {
+    headers: {
+      Accept: "application/vnd.github+json",
+      Authorization: `Bearer ${token}`,
+    },
+    cache: "no-store",
+  })
+
+  if (!res.ok) {
+    if (res.status === 401) {
+      return { ok: false as const, response: NextResponse.json({ message: "invalid_token" }, { status: 401 }) }
+    }
+    return {
+      ok: false as const,
+      response: NextResponse.json({ message: "github_request_failed", status: res.status }, { status: 502 }),
+    }
+  }
+
+  return { ok: true as const }
+}
+
 async function ensureDailyPostsTable() {
   const pool = getPool()
   await pool.query(
@@ -30,6 +63,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireGithubAuth(request)
+  if (!auth.ok) return auth.response
+
   await ensureDailyPostsTable()
   const pool = getPool()
 

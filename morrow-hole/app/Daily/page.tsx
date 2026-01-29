@@ -154,6 +154,11 @@ export default function ArticlePage() {
     }, [isPostModalOpen, closePostModal]);
 
     const handlePublish = async () => {
+        const token = typeof window !== "undefined" ? localStorage.getItem("token") ?? "" : "";
+        if (!token) {
+            setPostError("请先登录后发帖");
+            return;
+        }
         setIsPosting(true);
         setPostError('');
         try {
@@ -162,10 +167,11 @@ export default function ArticlePage() {
             form.set('mode', postMode);
             if (mediaFile) form.set('file', mediaFile);
 
-            const res = await fetch('/api/daily-posts', { method: 'POST', body: form });
+            const res = await fetch('/api/daily-posts', { method: 'POST', body: form, headers: { Authorization: `Bearer ${token}` } });
             const data = await res.json().catch(() => null);
             if (!res.ok) {
-                setPostError(typeof data?.message === 'string' ? data.message : '发布失败');
+                const msg = typeof data?.message === 'string' ? data.message : '发布失败';
+                setPostError(msg === "missing_token" || msg === "invalid_token" ? "请先登录后发帖" : msg);
                 return;
             }
 
@@ -306,11 +312,15 @@ export default function ArticlePage() {
                                     </button>
                                     {oauthError ? <div className="text-xs text-red-400">{oauthError}</div> : null}
                                     <button
-                                        className="w-full rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm text-white/80 transition-all hover:bg-white/20"
+                                        disabled={authStatus !== "authed"}
+                                        className="w-full rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm text-white/80 transition-all hover:bg-white/20 disabled:opacity-50"
                                         onClick={() => setIsPostModalOpen(true)}
                                     >
                                         发帖
                                     </button>
+                                    {authStatus === "authed" ? null : (
+                                        <div className="text-xs text-white/50">登录后才能发帖</div>
+                                    )}
                                 </div>
                             </div>
                         </div>
