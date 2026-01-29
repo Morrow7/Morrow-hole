@@ -2,9 +2,9 @@
 'use client';
 
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 
-export default function OAuthSuccess() {
+function OAuthSuccessInner() {
     const params = useSearchParams();
     const router = useRouter();
     const token = params.get('token');
@@ -21,4 +21,12 @@ export default function OAuthSuccess() {
     }, [error, token, router]);
 
     return <p>{message}</p>;
+}
+
+export default function OAuthSuccess() {
+    return (
+        <Suspense fallback={<p>登录中...</p>}>
+            <OAuthSuccessInner />
+        </Suspense>
+    );
 }
