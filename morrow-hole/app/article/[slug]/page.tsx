@@ -36,12 +36,12 @@ export default function ArticleDetailPage() {
   const [authorName, setAuthorName] = useState("");
   const [authStatus, setAuthStatus] = useState<"idle" | "loading" | "authed" | "error">("idle");
   const [authError, setAuthError] = useState("");
-  const clientId = process.env.NEXT_PUBLIC_CLIENT_ID ?? "";
+  const clientId = process.env.NEXT_PUBLIC_CLIENT_ID ?? process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID ?? "";
 
   const handleGithubLogin = () => {
     if (!clientId) {
       setAuthStatus("error");
-      setAuthError("未配置 NEXT_PUBLIC_CLIENT_ID（Vercel 环境变量），请配置后重新部署");
+      setAuthError("未配置 NEXT_PUBLIC_CLIENT_ID 或 NEXT_PUBLIC_GITHUB_CLIENT_ID（Vercel 环境变量），请配置后重新部署");
       return;
     }
     const redirectUri = `${window.location.origin}/api/auth/callback`;

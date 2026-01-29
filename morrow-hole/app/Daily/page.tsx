@@ -23,7 +23,9 @@ export default function ArticlePage() {
     const [postError, setPostError] = useState('');
     const [items, setItems] = useState<DailyPostItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [oauthClientId, setOauthClientId] = useState(process.env.NEXT_PUBLIC_CLIENT_ID ?? "");
+    const [oauthClientId, setOauthClientId] = useState(
+        process.env.NEXT_PUBLIC_CLIENT_ID ?? process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID ?? ""
+    );
     const [oauthError, setOauthError] = useState("");
     const [likedPostIds, setLikedPostIds] = useState<number[]>([]);
     const [commentBoxForId, setCommentBoxForId] = useState<number | null>(null);
@@ -241,7 +243,7 @@ export default function ArticlePage() {
                                         onClick={() => {
                                             const clientId = oauthClientId.trim();
                                             if (!clientId) {
-                                                setOauthError("未读取到 GitHub Client ID，请确认已在 Vercel 配置 NEXT_PUBLIC_CLIENT_ID 并重新部署");
+                                                setOauthError("未读取到 GitHub Client ID，请确认已在 Vercel 配置 NEXT_PUBLIC_CLIENT_ID 或 NEXT_PUBLIC_GITHUB_CLIENT_ID 并重新部署");
                                                 return;
                                             }
                                             setOauthError("");

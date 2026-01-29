@@ -12,7 +12,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL("/login?error=missing_code", url))
   }
 
-  const clientId = process.env.GITHUB_CLIENT_ID ?? process.env.NEXT_PUBLIC_CLIENT_ID ?? ""
+  const clientId =
+    process.env.GITHUB_CLIENT_ID ??
+    process.env.NEXT_PUBLIC_CLIENT_ID ??
+    process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID ??
+    ""
   const clientSecret = process.env.GITHUB_CLIENT_SECRET ?? ""
   if (!clientId || !clientSecret) {
     return NextResponse.redirect(new URL("/login?error=missing_oauth_env", url))
