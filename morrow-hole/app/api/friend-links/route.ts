@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server"
 import pool from "@/lib/db"
+import type { RowDataPacket } from "mysql2/promise"
 
-type FriendLink = {
+type FriendLink = RowDataPacket & {
   name: string
   url: string
   desc: string

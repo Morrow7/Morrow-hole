@@ -1,18 +1,18 @@
 import { NextResponse } from "next/server"
 import pool from "@/lib/db"
+import type { RowDataPacket } from "mysql2/promise"
 
-type Posts = {
+type FriendLink = RowDataPacket & {
     id: number
     title: string
-    summary: string
-    slug: string
+    desc: string
 }
 
 export async function GET() {
-    let items: Posts[] = []
+    let items: FriendLink[] = []
 
     try {
-        const [rows] = await pool.query<Posts[]>(
+        const [rows] = await pool.query<FriendLink[]>(
             "SELECT id, title, `desc` AS `desc` FROM friend_links ORDER BY id ASC"
         )
         items = Array.isArray(rows) ? rows : []

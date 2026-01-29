@@ -2,16 +2,15 @@
 import PixelSnow from '../component/PixeSnow';
 import ScrollReveal from '../component/ScrollReveal';
 import Dock from '../component/Dock';
-import { Home as HomeIcon, Music, User, Info } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function Home() {
     const router = useRouter();
     const items = [
-        { icon: <HomeIcon size={18} />, label: 'Article', onClick: () => router.push('/article') },
-        { icon: <Music size={18} />, label: 'Music', onClick: () => router.push('/music') },
-        { icon: <User size={18} />, label: 'Daily', onClick: () => router.push('/Daily') },
-        { icon: <Info size={18} />, label: 'About', onClick: () => router.push('/about') },
+        { icon: <span>🏠</span>, label: 'Article', onClick: () => router.push('/article') },
+        { icon: <span>🎵</span>, label: 'Music', onClick: () => router.push('/music') },
+        { icon: <span>👤</span>, label: 'Daily', onClick: () => router.push('/Daily') },
+        { icon: <span>ℹ️</span>, label: 'About', onClick: () => router.push('/about') },
     ];
     return (
         <>
@@ -62,7 +61,6 @@ export default function Home() {
                             items={items}
                             panelHeight={68}
                             baseItemSize={50}
-                            magnification={70}
                         />
                     </div>
                 </div>

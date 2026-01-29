@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server"
 import pool from "@/lib/db"
+import type { RowDataPacket } from "mysql2/promise"
 
-type PostRow = {
+type PostRow = RowDataPacket & {
   id: number
   title: string
   summary: string

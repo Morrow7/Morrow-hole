@@ -1,10 +1,16 @@
 "use client";
 
 import Galaxy from '../../component/Galaxy';
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
+
+type FriendLink = {
+    name: string
+    url: string
+    desc: string
+}
 
 export default function ArticlePage() {
-    const [friendLinks, setFriendLinks] = useState([]);
+    const [friendLinks, setFriendLinks] = useState<FriendLink[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
