@@ -2,13 +2,13 @@
 import Galaxy from '../../component/Galaxy';
 export default function ArticlePage() {
     return (
-        <div className="min-h-screen bg-black text-white p-8 flex flex-col items-center justify-center">
-            <div style={{ width: '100%', height: '600px', position: 'relative' }}>
+        <div className="min-h-[100svh] bg-black text-white px-4 py-8 sm:p-8 flex flex-col items-center justify-center gap-6">
+            <div className="relative w-full max-w-5xl h-[45vh] sm:h-[600px]">
                 <Galaxy />
             </div>
 
 
-            <div style={{ width: '100%', height: '600px', position: 'relative' }}>
+            <div className="relative w-full max-w-5xl h-[45vh] sm:h-[600px]">
                 <Galaxy
                     mouseRepulsion
                     mouseInteraction

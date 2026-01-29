@@ -14,7 +14,7 @@ export default function Home() {
     ];
     return (
         <>
-            <div className="relative w-full h-screen overflow-hidden flex items-center justify-center">
+            <div className="relative w-full min-h-[100svh] overflow-hidden flex items-center justify-center">
                 <PixelSnow
                     className="absolute inset-0 z-0"
                     color="#ffffff"
@@ -30,11 +30,11 @@ export default function Home() {
                     gamma={0.4545}
                     variant="square"
                 />
-                <div className="relative z-10 p-8">
+                <div className="relative z-10 w-full max-w-4xl px-4 py-10 sm:p-10">
                     <ScrollReveal
                         scrollContainerRef={null}
                         containerClassName="text-center"
-                        textClassName="text-white text-4xl font-bold leading-relaxed"
+                        textClassName="text-white text-2xl sm:text-4xl font-bold leading-relaxed"
                         rotationEnd="bottom bottom"
                         wordAnimationEnd="bottom bottom"
                         baseOpacity={0.3}
@@ -56,11 +56,11 @@ export default function Home() {
                          If we have the same hobbies, 
                          we can become friends.`}
                     </ScrollReveal>
-                    <div className="mt-0 flex  justify-center space-x-8">
+                    <div className="mt-6 flex justify-center sm:mt-2">
                         <Dock
                             items={items}
-                            panelHeight={68}
-                            baseItemSize={50}
+                            panelHeight={60}
+                            baseItemSize={46}
                         />
                     </div>
                 </div>

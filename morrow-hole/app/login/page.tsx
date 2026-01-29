@@ -22,7 +22,13 @@ function OAuthSuccessInner() {
         }
     }, [error, token, router]);
 
-    return <p>{message}</p>;
+    return (
+        <div className="min-h-[100svh] bg-black text-white flex items-center justify-center px-4 py-10">
+            <div className="w-full max-w-md rounded-2xl border border-white/10 bg-white/5 p-5 text-center backdrop-blur-md">
+                <p className="text-sm text-white/80">{message}</p>
+            </div>
+        </div>
+    );
 }
 
 export default function OAuthSuccess() {

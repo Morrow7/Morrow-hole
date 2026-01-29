@@ -50,20 +50,22 @@ export default function ArticlePage() {
                     style={{ width: '100%', height: '100%' }}
                 />
             </div>
-            <div className="relative z-20 px-6 py-10">
-                <h1 className="text-4xl font-bold text-center">Article</h1>
-                <div className="mt-8 grid grid-cols-3 ml-10 flex flex-wrap gap-8">
-                    {isLoading ? null : items.map(item => (
-                        <button
-                            key={item.id}
-                            onClick={() => router.push(`/article/${item.slug}`)}
-                            className="w-80 rounded-2xl border border-white/10 bg-white/10 px-6 py-5 text-left backdrop-blur-md shadow-lg transition-all duration-300 hover:bg-white/20"
-                        >
-                            <div className="text-xl font-semibold text-white/90">{item.title}</div>
-                            <div className="mt-2 text-sm text-white/70">{item.summary}</div>
-                            <div className="mt-3 text-xs text-white/50">{new Date(item.created_at).toLocaleString()}</div>
-                        </button>
-                    ))} 
+            <div className="relative z-20 px-4 py-8 sm:px-6 sm:py-10">
+                <div className="mx-auto w-full max-w-6xl">
+                    <h1 className="text-2xl font-bold text-center sm:text-4xl">Article</h1>
+                    <div className="mt-6 grid grid-cols-1 gap-4 sm:mt-8 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 lg:gap-8">
+                        {isLoading ? null : items.map(item => (
+                            <button
+                                key={item.id}
+                                onClick={() => router.push(`/article/${item.slug}`)}
+                                className="w-full rounded-2xl border border-white/10 bg-white/10 px-5 py-4 text-left backdrop-blur-md shadow-lg transition-all duration-300 hover:bg-white/20"
+                            >
+                                <div className="text-lg font-semibold text-white/90 sm:text-xl">{item.title}</div>
+                                <div className="mt-2 text-sm text-white/70">{item.summary}</div>
+                                <div className="mt-3 text-xs text-white/50">{new Date(item.created_at).toLocaleString()}</div>
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
         </div>

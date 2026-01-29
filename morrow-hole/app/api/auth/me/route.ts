@@ -30,10 +30,11 @@ export async function GET(request: NextRequest) {
   const data = await res.json().catch(() => null)
   const login = typeof data?.login === "string" ? data.login : ""
   const name = typeof data?.name === "string" ? data.name : null
+  const avatarUrl = typeof data?.avatar_url === "string" ? data.avatar_url : ""
 
   if (!login) {
     return NextResponse.json({ message: "invalid_user" }, { status: 502 })
   }
 
-  return NextResponse.json({ login, name })
+  return NextResponse.json({ login, name, avatarUrl })
 }

@@ -13,6 +13,12 @@ type DailyPostItem = {
     comments_count: number
 }
 
+type GithubMe = {
+    login: string
+    name: string | null
+    avatarUrl: string
+}
+
 export default function ArticlePage() {
     const [isPostModalOpen, setIsPostModalOpen] = useState(false);
     const [postMode, setPostMode] = useState<'text' | 'image' | 'video'>('text');
@@ -27,6 +33,9 @@ export default function ArticlePage() {
         process.env.NEXT_PUBLIC_CLIENT_ID ?? process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID ?? ""
     );
     const [oauthError, setOauthError] = useState("");
+    const [authStatus, setAuthStatus] = useState<"idle" | "loading" | "authed" | "error">("idle");
+    const [authorName, setAuthorName] = useState("");
+    const [authorAvatarUrl, setAuthorAvatarUrl] = useState("");
     const [likedPostIds, setLikedPostIds] = useState<number[]>([]);
     const [commentBoxForId, setCommentBoxForId] = useState<number | null>(null);
     const [commentDraft, setCommentDraft] = useState("");
@@ -43,6 +52,23 @@ export default function ArticlePage() {
             })
             .catch(() => { });
     }, [oauthClientId]);
+
+    useEffect(() => {
+        const token = typeof window !== "undefined" ? localStorage.getItem("token") ?? "" : "";
+        if (!token) return;
+        setAuthStatus("loading");
+        fetch("/api/auth/me", { headers: { Authorization: `Bearer ${token}` } })
+            .then(res => (res.ok ? res.json() : Promise.reject(res.status)))
+            .then((user: GithubMe) => {
+                const name = (user.name ?? "").trim() || user.login || "github";
+                setAuthorName(name);
+                setAuthorAvatarUrl(typeof user.avatarUrl === "string" ? user.avatarUrl : "");
+                setAuthStatus("authed");
+            })
+            .catch(() => {
+                setAuthStatus("error");
+            });
+    }, []);
 
     const normalizeDailyPostItem = (raw: unknown): DailyPostItem | null => {
         if (!raw || typeof raw !== 'object') return null;
@@ -88,16 +114,6 @@ export default function ArticlePage() {
             } finally {
                 setIsLoading(false);
             }
-        })();
-    }, []);
-
-    useEffect(() => {
-        (async () => {
-            const res = await fetch("/api/auth/client-id", { cache: "no-store" });
-            if (!res.ok) return;
-            const data = await res.json().catch(() => null);
-            const id = typeof data?.clientId === "string" ? data.clientId : "";
-            if (id) setOauthClientId(id);
         })();
     }, []);
 
@@ -242,15 +258,16 @@ export default function ArticlePage() {
                 style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }}
             />
 
-            <div className="relative z-10 p-8">
-                <div className="mx-auto w-full max-w-8xl">
+            <div className="relative z-10 px-4 py-8 sm:p-8">
+                <div className="mx-auto w-full max-w-7xl">
                     <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
                         <div className="lg:col-span-3 lg:sticky lg:top-8">
                             <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-md">
                                 <div className="text-lg font-semibold">登录与发帖</div>
                                 <div className="mt-4 space-y-3">
                                     <button
-                                        className="w-full rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm text-white/80 transition-all hover:bg-white/20"
+                                        disabled={authStatus === "loading" || authStatus === "authed"}
+                                        className="w-full inline-flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm text-white/80 transition-all hover:bg-white/20 disabled:opacity-50"
                                         onClick={() => {
                                             const clientId = oauthClientId.trim();
                                             if (!clientId) {
@@ -268,7 +285,24 @@ export default function ArticlePage() {
                                             window.location.href = authUrl;
                                         }}
                                     >
-                                        github登录
+                                        {authStatus === "authed" ? (
+                                            <>
+                                                {authorAvatarUrl ? (
+                                                    <Image
+                                                        src={authorAvatarUrl}
+                                                        alt={authorName}
+                                                        width={24}
+                                                        height={24}
+                                                        className="h-6 w-6 rounded-full"
+                                                    />
+                                                ) : null}
+                                                <span className="max-w-40 truncate">{authorName}</span>
+                                            </>
+                                        ) : authStatus === "loading" ? (
+                                            "登录中..."
+                                        ) : (
+                                            "github登录"
+                                        )}
                                     </button>
                                     {oauthError ? <div className="text-xs text-red-400">{oauthError}</div> : null}
                                     <button
@@ -296,7 +330,7 @@ export default function ArticlePage() {
                                                 {item.content ? <div className="mt-2 whitespace-pre-wrap text-white/90">{item.content}</div> : null}
                                                 {item.has_media ? (
                                                     item.media_type === 'image' ? (
-                                                        <div className="relative mt-3 h-64 w-full overflow-hidden rounded-xl border border-white/10">
+                                                        <div className="relative mt-3 h-48 w-full overflow-hidden rounded-xl border border-white/10 sm:h-64">
                                                             <Image
                                                                 src={`/api/daily-posts/media?id=${item.id}`}
                                                                 alt="media"
@@ -378,14 +412,14 @@ export default function ArticlePage() {
 
             {
                 isPostModalOpen ? (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center">
                         <button
                             type="button"
                             className="absolute inset-0 bg-black/70"
                             onClick={closePostModal}
                             aria-label="Close"
                         />
-                        <div className="relative w-full max-w-xl rounded-2xl border border-white/10 bg-black/80 p-5 backdrop-blur-md">
+                        <div className="relative w-full max-w-xl max-h-[85svh] overflow-y-auto rounded-2xl border border-white/10 bg-black/80 p-4 sm:p-5 backdrop-blur-md">
                             <div className="flex items-center justify-between">
                                 <div className="text-lg font-semibold">发帖</div>
                                 <button
@@ -449,7 +483,7 @@ export default function ArticlePage() {
                                             <div className="mt-3">
                                                 <div className="text-xs text-white/50">{mediaFile.name}</div>
                                                 {postMode === 'image' ? (
-                                                    <div className="relative mt-3 h-64 w-full overflow-hidden rounded-xl border border-white/10">
+                                                    <div className="relative mt-3 h-48 w-full overflow-hidden rounded-xl border border-white/10 sm:h-64">
                                                         <Image src={mediaPreviewUrl} alt="preview" fill className="object-contain" unoptimized />
                                                     </div>
                                                 ) : (

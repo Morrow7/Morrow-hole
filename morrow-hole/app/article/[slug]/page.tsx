@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Image from "next/image";
 import ReactMarkdown from "react-markdown";
 import Galaxy from '../../../component/Galaxy';
 
@@ -20,6 +21,7 @@ type CommentItem = {
 type GithubUser = {
   login: string
   name: string | null
+  avatarUrl: string
 }
 
 export default function ArticleDetailPage() {
@@ -34,6 +36,7 @@ export default function ArticleDetailPage() {
   const [commentContent, setCommentContent] = useState("");
   const [isPosting, setIsPosting] = useState(false);
   const [authorName, setAuthorName] = useState("");
+  const [authorAvatarUrl, setAuthorAvatarUrl] = useState("");
   const [authStatus, setAuthStatus] = useState<"idle" | "loading" | "authed" | "error">("idle");
   const [authError, setAuthError] = useState("");
   const [oauthClientId, setOauthClientId] = useState(
@@ -78,6 +81,7 @@ export default function ArticleDetailPage() {
       .then((user: GithubUser) => {
         const name = (user.name ?? "").trim() || user.login || "github";
         setAuthorName(name);
+        setAuthorAvatarUrl(typeof user.avatarUrl === "string" ? user.avatarUrl : "");
         setAuthStatus("authed");
       })
       .catch(() => {
@@ -147,23 +151,25 @@ export default function ArticleDetailPage() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white p-8">
-      <Galaxy
-        mouseRepulsion
-        mouseInteraction
-        density={1}
-        glowIntensity={0.3}
-        saturation={0}
-        hueShift={140}
-        twinkleIntensity={0.3}
-        rotationSpeed={0.1}
-        repulsionStrength={2}
-        autoCenterRepulsion={0}
-        starSpeed={0.5}
-        speed={1}
-        style={{ width: '100%', height: '100%' }}
-      />
-      <div className="mx-auto w-full max-w-3xl">
+    <div className="relative min-h-[100svh] bg-black text-white overflow-hidden">
+      <div className="absolute inset-0">
+        <Galaxy
+          mouseRepulsion
+          mouseInteraction
+          density={1}
+          glowIntensity={0.3}
+          saturation={0}
+          hueShift={140}
+          twinkleIntensity={0.3}
+          rotationSpeed={0.1}
+          repulsionStrength={2}
+          autoCenterRepulsion={0}
+          starSpeed={0.5}
+          speed={1}
+          style={{ width: '100%', height: '100%' }}
+        />
+      </div>
+      <div className="relative z-10 mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 sm:py-10">
         <button
           className="mb-6 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm text-white/80 backdrop-blur-md transition-all hover:bg-white/20"
           onClick={() => router.push("/article")}
@@ -195,9 +201,26 @@ export default function ArticleDetailPage() {
             <button
               onClick={handleGithubLogin}
               disabled={authStatus === "loading" || authStatus === "authed"}
-              className="w-40 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm text-white/80 transition-all hover:bg-white/20 disabled:opacity-50"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm text-white/80 transition-all hover:bg-white/20 disabled:opacity-50"
             >
-              {authStatus === "authed" ? `已登录：${authorName}` : authStatus === "loading" ? "登录中..." : "github登录"}
+              {authStatus === "authed" ? (
+                <>
+                  {authorAvatarUrl ? (
+                    <Image
+                      src={authorAvatarUrl}
+                      alt={authorName}
+                      width={24}
+                      height={24}
+                      className="h-6 w-6 rounded-full"
+                    />
+                  ) : null}
+                  <span className="max-w-40 truncate">{authorName}</span>
+                </>
+              ) : authStatus === "loading" ? (
+                "登录中..."
+              ) : (
+                "github登录"
+              )}
             </button>
             {authStatus === "error" ? (
               <div className="text-xs text-red-400">{authError}</div>
