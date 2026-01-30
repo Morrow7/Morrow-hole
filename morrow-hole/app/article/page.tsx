@@ -11,6 +11,15 @@ type CommentItem = {
     created_at: string
 }
 
+type LikeItem = {
+    id: number
+    post_slug: string
+    client_id: string
+    author: string
+    avatar_url: string | null
+    created_at: string
+}
+
 type PostItem = {
     id: number
     title: string
@@ -18,6 +27,7 @@ type PostItem = {
     slug: string
     created_at: string
     comments?: CommentItem[]
+    likes?: LikeItem[]
 }
 
 export default function ArticlePage() {
@@ -25,11 +35,12 @@ export default function ArticlePage() {
     const [items, setItems] = useState<PostItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [openCommentsSlug, setOpenCommentsSlug] = useState<string>("");
+    const [openLikesSlug, setOpenLikesSlug] = useState<string>("");
 
     useEffect(() => {
         const loadPosts = async () => {
             try {
-                const res = await fetch('/api/posts?includeComments=1');
+                const res = await fetch('/api/posts?includeComments=1&includeLikes=1');
                 if (!res.ok) return;
                 const data = await res.json();
                 setItems(Array.isArray(data.items) ? data.items : []);
@@ -80,14 +91,30 @@ export default function ArticlePage() {
                                 </button>
 
                                 <div className="mt-4 flex items-center justify-between gap-3">
-                                    <button
-                                        type="button"
-                                        onClick={() => setOpenCommentsSlug(prev => (prev === item.slug ? "" : item.slug))}
-                                        className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/75 transition-all hover:bg-white/10"
-                                        aria-expanded={openCommentsSlug === item.slug}
-                                    >
-                                        评论 {Array.isArray(item.comments) ? item.comments.length : 0}
-                                    </button>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setOpenCommentsSlug(prev => (prev === item.slug ? "" : item.slug))
+                                                setOpenLikesSlug("")
+                                            }}
+                                            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/75 transition-all hover:bg-white/10"
+                                            aria-expanded={openCommentsSlug === item.slug}
+                                        >
+                                            评论 {Array.isArray(item.comments) ? item.comments.length : 0}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setOpenLikesSlug(prev => (prev === item.slug ? "" : item.slug))
+                                                setOpenCommentsSlug("")
+                                            }}
+                                            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/75 transition-all hover:bg-white/10"
+                                            aria-expanded={openLikesSlug === item.slug}
+                                        >
+                                            点赞 {Array.isArray(item.likes) ? item.likes.length : 0}
+                                        </button>
+                                    </div>
                                     <button
                                         type="button"
                                         onClick={() => router.push(`/article/${item.slug}`)}
@@ -110,6 +137,23 @@ export default function ArticlePage() {
                                                             <div className="text-[11px] text-white/35">{new Date(c.created_at).toLocaleString()}</div>
                                                         </div>
                                                         <div className="mt-2 whitespace-pre-wrap break-words text-xs leading-5 text-white/80">{c.content}</div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : null}
+
+                                {openLikesSlug === item.slug ? (
+                                    <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-3">
+                                        {!Array.isArray(item.likes) || item.likes.length === 0 ? (
+                                            <div className="text-xs text-white/45">暂无点赞</div>
+                                        ) : (
+                                            <div className="max-h-56 space-y-2 overflow-auto pr-1">
+                                                {item.likes.map(l => (
+                                                    <div key={l.id} className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/5 p-3">
+                                                        <div className="min-w-0 truncate text-xs font-medium text-white/80">{l.author}</div>
+                                                        <div className="shrink-0 text-[11px] text-white/35">{new Date(l.created_at).toLocaleString()}</div>
                                                     </div>
                                                 ))}
                                             </div>

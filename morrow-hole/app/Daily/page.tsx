@@ -1,7 +1,7 @@
 "use client";
 import Galaxy from '../../component/Galaxy';
 import Image from 'next/image';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 type DailyPostItem = {
     id: number
@@ -11,6 +11,14 @@ type DailyPostItem = {
     has_media: 0 | 1
     likes_count: number
     comments_count: number
+}
+
+type DailyCommentItem = {
+    id: number
+    post_slug: string
+    author: string
+    content: string
+    created_at: string
 }
 
 type GithubMe = {
@@ -41,6 +49,9 @@ export default function ArticlePage() {
     const [commentDraft, setCommentDraft] = useState("");
     const [isCommentPosting, setIsCommentPosting] = useState(false);
     const [commentError, setCommentError] = useState("");
+    const [openCommentsForId, setOpenCommentsForId] = useState<number | null>(null);
+    const [commentsByPostId, setCommentsByPostId] = useState<Record<number, DailyCommentItem[]>>({});
+    const [loadingCommentsForId, setLoadingCommentsForId] = useState<number | null>(null);
 
     useEffect(() => {
         if (oauthClientId.trim()) return;
@@ -69,6 +80,23 @@ export default function ArticlePage() {
                 setAuthStatus("error");
             });
     }, []);
+
+    const startGithubLogin = useCallback(() => {
+        const clientId = oauthClientId.trim();
+        if (!clientId) {
+            setOauthError("未读取到 GitHub Client ID，请确认已在 Vercel 配置 GITHUB_CLIENT_ID 或 NEXT_PUBLIC_CLIENT_ID 并重新部署");
+            return;
+        }
+        setOauthError("");
+        try {
+            localStorage.setItem("post_login_redirect", `${window.location.pathname}${window.location.search}`);
+        } catch { }
+        const redirectUri =
+            (process.env.NEXT_PUBLIC_GITHUB_REDIRECT_URI ?? "").trim() ||
+            `${window.location.origin}/api/auth/callback`;
+        const authUrl = `https://github.com/login/oauth/authorize?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent('read:user')}`;
+        window.location.href = authUrl;
+    }, [oauthClientId]);
 
     const normalizeDailyPostItem = (raw: unknown): DailyPostItem | null => {
         if (!raw || typeof raw !== 'object') return null;
@@ -117,21 +145,33 @@ export default function ArticlePage() {
         })();
     }, []);
 
+    const likedStorageKey = useMemo(() => {
+        if (authStatus !== "authed") return "";
+        const keyPart = authorName.trim() || "github";
+        return `daily_liked_post_ids:${keyPart}`;
+    }, [authStatus, authorName]);
+
     useEffect(() => {
+        if (!likedStorageKey) return;
         try {
-            const raw = localStorage.getItem("daily_liked_post_ids") ?? "[]";
+            const raw = localStorage.getItem(likedStorageKey) ?? "[]";
             const parsed: unknown = JSON.parse(raw);
             if (Array.isArray(parsed)) {
                 setLikedPostIds(parsed.filter((x): x is number => typeof x === "number" && Number.isFinite(x)));
+            } else {
+                setLikedPostIds([]);
             }
-        } catch { }
-    }, []);
+        } catch {
+            setLikedPostIds([]);
+        }
+    }, [likedStorageKey]);
 
     useEffect(() => {
+        if (!likedStorageKey) return;
         try {
-            localStorage.setItem("daily_liked_post_ids", JSON.stringify(likedPostIds));
+            localStorage.setItem(likedStorageKey, JSON.stringify(likedPostIds));
         } catch { }
-    }, [likedPostIds]);
+    }, [likedPostIds, likedStorageKey]);
 
     const closePostModal = useCallback(() => {
         if (mediaPreviewUrl) URL.revokeObjectURL(mediaPreviewUrl);
@@ -200,19 +240,56 @@ export default function ArticlePage() {
         setMediaPreviewUrl('');
     };
 
-    const toggleLike = (postId: number) => {
+    const toggleLike = async (postId: number) => {
+        const token = typeof window !== "undefined" ? localStorage.getItem("token") ?? "" : "";
+        if (!token || authStatus !== "authed") {
+            setOauthError("请先登录后点赞");
+            startGithubLogin();
+            return;
+        }
+
         const isLiked = likedPostIds.includes(postId);
-        setLikedPostIds(prev => (isLiked ? prev.filter(x => x !== postId) : [...prev, postId]));
+        const res = await fetch("/api/likes", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({
+                slug: `daily:${postId}`,
+                action: isLiked ? "unlike" : "like",
+            }),
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok) {
+            const msg = typeof data?.message === "string" ? data.message : "";
+            if (res.status === 401 || msg === "missing_token" || msg === "invalid_token") {
+                try { localStorage.removeItem("token"); } catch { }
+                setAuthStatus("error");
+                setOauthError("请先登录后点赞");
+                return;
+            }
+            setOauthError(msg || "点赞失败");
+            return;
+        }
+
+        const liked = Boolean(data?.liked);
+        const count = Number(data?.count ?? 0) || 0;
+        setLikedPostIds(prev => {
+            const exists = prev.includes(postId);
+            if (liked && !exists) return [...prev, postId];
+            if (!liked && exists) return prev.filter(x => x !== postId);
+            return prev;
+        });
         setItems(prev =>
-            prev.map(it => {
-                if (it.id !== postId) return it;
-                const current = Number.isFinite(it.likes_count) ? it.likes_count : 0;
-                return { ...it, likes_count: Math.max(0, current + (isLiked ? -1 : 1)) };
-            })
+            prev.map(it => (it.id === postId ? { ...it, likes_count: count } : it))
         );
     };
 
     const submitComment = async (postId: number) => {
+        const token = typeof window !== "undefined" ? localStorage.getItem("token") ?? "" : "";
+        if (!token || authStatus !== "authed") {
+            setOauthError("请先登录后评论");
+            startGithubLogin();
+            return;
+        }
         const content = commentDraft.trim();
         if (!content) return;
         setIsCommentPosting(true);
@@ -220,17 +297,31 @@ export default function ArticlePage() {
         try {
             const res = await fetch("/api/comments", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
                 body: JSON.stringify({
                     slug: `daily:${postId}`,
-                    name: "匿名",
                     content,
                 }),
             });
             const data = await res.json().catch(() => null);
             if (!res.ok) {
-                setCommentError(typeof data?.message === "string" ? data.message : "评论失败");
+                const msg = typeof data?.message === "string" ? data.message : "";
+                if (res.status === 401 || msg === "missing_token" || msg === "invalid_token") {
+                    try { localStorage.removeItem("token"); } catch { }
+                    setAuthStatus("error");
+                    setOauthError("请先登录后评论");
+                    setCommentError("请先登录后评论");
+                    return;
+                }
+                setCommentError(msg || "评论失败");
                 return;
+            }
+            const nextItem = data?.item as DailyCommentItem | null;
+            if (nextItem && typeof nextItem === "object") {
+                setCommentsByPostId(prev => {
+                    const current = Array.isArray(prev[postId]) ? prev[postId] : [];
+                    return { ...prev, [postId]: [nextItem, ...current] };
+                });
             }
             setItems(prev =>
                 prev.map(it => {
@@ -245,6 +336,19 @@ export default function ArticlePage() {
             setIsCommentPosting(false);
         }
     };
+
+    const loadCommentsForPost = useCallback(async (postId: number) => {
+        setLoadingCommentsForId(postId);
+        try {
+            const res = await fetch(`/api/comments?slug=${encodeURIComponent(`daily:${postId}`)}`);
+            if (!res.ok) return;
+            const data = await res.json().catch(() => null);
+            const list = Array.isArray(data?.items) ? data.items : [];
+            setCommentsByPostId(prev => ({ ...prev, [postId]: list }));
+        } finally {
+            setLoadingCommentsForId(prev => (prev === postId ? null : prev));
+        }
+    }, []);
 
     return (
         <div className="relative min-h-screen bg-black text-white">
@@ -274,22 +378,7 @@ export default function ArticlePage() {
                                     <button
                                         disabled={authStatus === "loading" || authStatus === "authed"}
                                         className="w-full inline-flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm text-white/80 transition-all hover:bg-white/20 disabled:opacity-50"
-                                        onClick={() => {
-                                            const clientId = oauthClientId.trim();
-                                            if (!clientId) {
-                                                setOauthError("未读取到 GitHub Client ID，请确认已在 Vercel 配置 GITHUB_CLIENT_ID 或 NEXT_PUBLIC_CLIENT_ID 并重新部署");
-                                                return;
-                                            }
-                                            setOauthError("");
-                                            try {
-                                                localStorage.setItem("post_login_redirect", `${window.location.pathname}${window.location.search}`);
-                                            } catch { }
-                                            const redirectUri =
-                                                (process.env.NEXT_PUBLIC_GITHUB_REDIRECT_URI ?? "").trim() ||
-                                                `${window.location.origin}/api/auth/callback`;
-                                            const authUrl = `https://github.com/login/oauth/authorize?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent('read:user')}`;
-                                            window.location.href = authUrl;
-                                        }}
+                                        onClick={startGithubLogin}
                                     >
                                         {authStatus === "authed" ? (
                                             <>
@@ -368,6 +457,11 @@ export default function ArticlePage() {
                                                     <button
                                                         type="button"
                                                         onClick={() => {
+                                                            if (authStatus !== "authed") {
+                                                                setOauthError("请先登录后评论");
+                                                                startGithubLogin();
+                                                                return;
+                                                            }
                                                             setCommentError("");
                                                             setCommentDraft("");
                                                             setCommentBoxForId(prev => (prev === item.id ? null : item.id));
@@ -376,7 +470,47 @@ export default function ArticlePage() {
                                                     >
                                                         评 {Number.isFinite(item.comments_count) ? item.comments_count : 0}
                                                     </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setOpenCommentsForId(prev => {
+                                                                const next = prev === item.id ? null : item.id;
+                                                                if (next !== null && !Array.isArray(commentsByPostId[next])) {
+                                                                    loadCommentsForPost(next);
+                                                                }
+                                                                return next;
+                                                            });
+                                                        }}
+                                                        className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-white/80 transition-all hover:bg-white/10"
+                                                        aria-expanded={openCommentsForId === item.id}
+                                                    >
+                                                        查看评论
+                                                    </button>
                                                 </div>
+                                                {openCommentsForId === item.id ? (
+                                                    <div className="mt-3 rounded-xl border border-white/10 bg-black/20 p-3">
+                                                        {loadingCommentsForId === item.id ? (
+                                                            <div className="space-y-2">
+                                                                <div className="h-12 animate-pulse rounded-xl bg-white/5" />
+                                                                <div className="h-12 animate-pulse rounded-xl bg-white/5" />
+                                                            </div>
+                                                        ) : !Array.isArray(commentsByPostId[item.id]) || commentsByPostId[item.id].length === 0 ? (
+                                                            <div className="text-xs text-white/45">暂无评论</div>
+                                                        ) : (
+                                                            <div className="max-h-64 space-y-2 overflow-auto pr-1">
+                                                                {commentsByPostId[item.id].map(c => (
+                                                                    <div key={c.id} className="rounded-xl border border-white/10 bg-white/5 p-3">
+                                                                        <div className="flex items-center justify-between gap-3">
+                                                                            <div className="text-xs font-medium text-white/80">{c.author}</div>
+                                                                            <div className="text-[11px] text-white/35">{new Date(c.created_at).toLocaleString()}</div>
+                                                                        </div>
+                                                                        <div className="mt-2 whitespace-pre-wrap break-words text-xs leading-5 text-white/80">{c.content}</div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ) : null}
                                                 {commentBoxForId === item.id ? (
                                                     <div className="mt-3 rounded-xl border border-white/10 bg-white/5 p-3">
                                                         {commentError ? <div className="text-xs text-red-400">{commentError}</div> : null}

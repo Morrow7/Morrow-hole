@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { getPool } from "@/lib/db"
+import { requireGithubUser } from "@/lib/githubAuth"
 import type { ResultSetHeader, RowDataPacket } from "mysql2/promise"
 
 type CommentRow = RowDataPacket & {
@@ -33,15 +34,17 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireGithubUser(request)
+  if (!auth.ok) return auth.response
+
   const body = await request.json().catch(() => null)
   const slugRaw = typeof body?.slug === "string" ? body.slug : ""
-  const nameRaw = typeof body?.name === "string" ? body.name : ""
   const contentRaw = typeof body?.content === "string" ? body.content : ""
   const slug = decodeURIComponent(slugRaw).trim()
-  const name = nameRaw.trim().slice(0, 64)
   const content = contentRaw.trim()
+  const author = ((auth.user.name ?? "").trim() || auth.user.login).slice(0, 64)
 
-  if (!slug || !name || !content) {
+  if (!slug || !content) {
     return NextResponse.json({ message: "Invalid payload" }, { status: 400 })
   }
 
@@ -49,7 +52,7 @@ export async function POST(request: NextRequest) {
   const pool = getPool()
   const [result] = await pool.query<ResultSetHeader>(
     "INSERT INTO comments (post_slug, author, content) VALUES (?, ?, ?)",
-    [slug, name, content]
+    [slug, author, content]
   )
   const insertId = result.insertId
   const [rows] = await pool.query<CommentRow[]>(

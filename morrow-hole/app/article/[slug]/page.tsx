@@ -34,6 +34,7 @@ export default function ArticleDetailPage() {
   const [isCommentsLoading, setIsCommentsLoading] = useState(true);
   const [commentContent, setCommentContent] = useState("");
   const [isPosting, setIsPosting] = useState(false);
+  const [commentError, setCommentError] = useState("");
   const [authorName, setAuthorName] = useState("");
   const [authorAvatarUrl, setAuthorAvatarUrl] = useState("");
   const [authStatus, setAuthStatus] = useState<"idle" | "loading" | "authed" | "error">("idle");
@@ -124,20 +125,41 @@ export default function ArticleDetailPage() {
 
   const handleSubmit = async () => {
     if (!slug) return;
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") ?? "" : "";
+    if (!token || authStatus !== "authed") {
+      setCommentError("请先登录后评论");
+      handleGithubLogin();
+      return;
+    }
+    const contentText = commentContent.trim();
+    if (!contentText) {
+      setCommentError("请输入评论内容");
+      return;
+    }
     setIsPosting(true);
+    setCommentError("");
     try {
-      const name = authorName.trim() || "匿名";
       const res = await fetch("/api/comments", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           slug,
-          name,
-          content: commentContent,
+          content: contentText,
         }),
       });
-      if (!res.ok) return;
-      const data = await res.json();
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        const msg = typeof data?.message === "string" ? data.message : "";
+        if (res.status === 401 || msg === "missing_token" || msg === "invalid_token") {
+          try { localStorage.removeItem("token"); } catch { }
+          setAuthStatus("error");
+          setAuthError("GitHub 登录状态失效，请重新登录");
+          setCommentError("请先登录后评论");
+          return;
+        }
+        setCommentError(msg || "评论失败");
+        return;
+      }
       if (data?.item) {
         setComments(prev => [data.item, ...prev]);
       } else {
@@ -262,25 +284,27 @@ export default function ArticleDetailPage() {
               {authStatus === "error" ? (
                 <div className="text-xs text-red-400">{authError}</div>
               ) : authStatus !== "authed" ? (
-                <div className="text-xs text-white/45">未登录将以匿名发布</div>
+                <div className="text-xs text-white/45">登录后才能评论</div>
               ) : (
                 <div className="text-xs text-white/45">已登录</div>
               )}
             </div>
 
             <div className="mt-4">
+              {commentError ? <div className="mb-2 text-xs text-red-400">{commentError}</div> : null}
               <textarea
                 value={commentContent}
                 onChange={e => setCommentContent(e.target.value)}
-                placeholder="写下你的评论"
+                placeholder={authStatus === "authed" ? "写下你的评论" : "登录后才能评论"}
                 rows={4}
                 className="w-full resize-none rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm leading-6 text-white outline-none transition-all focus:border-white/20 focus:bg-black/40"
+                disabled={authStatus !== "authed"}
               />
             </div>
             <div className="mt-3 flex justify-end">
               <button
                 onClick={handleSubmit}
-                disabled={isPosting}
+                disabled={isPosting || authStatus !== "authed"}
                 className="rounded-full border border-white/10 bg-white/10 px-5 py-2 text-sm text-white/85 transition-all hover:bg-white/20 disabled:opacity-50"
               >
                 {isPosting ? "提交中..." : "提交评论"}
