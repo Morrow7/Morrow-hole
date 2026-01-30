@@ -3,6 +3,20 @@ import Galaxy from '../../component/Galaxy';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+const dateFormatter = new Intl.DateTimeFormat(undefined, {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+})
+
+function formatDate(value: string) {
+    const d = new Date(value)
+    if (Number.isNaN(d.getTime())) return ''
+    return dateFormatter.format(d)
+}
+
 type CommentItem = {
     id: number
     post_slug: string
@@ -40,21 +54,72 @@ export default function ArticlePage() {
     const [likesBySlug, setLikesBySlug] = useState<Record<string, LikeItem[]>>({});
     const [loadingCommentsSlug, setLoadingCommentsSlug] = useState<string>("");
     const [loadingLikesSlug, setLoadingLikesSlug] = useState<string>("");
+    const [isGalaxyActive, setIsGalaxyActive] = useState(false);
 
     useEffect(() => {
+        const ac = new AbortController();
         const loadPosts = async () => {
             try {
-                const res = await fetch('/api/posts?limit=24');
-                if (!res.ok) return;
-                const data = await res.json();
-                setItems(Array.isArray(data.items) ? data.items : []);
-            } finally {
+                const firstRes = await fetch('/api/posts?limit=12', { signal: ac.signal });
+                if (firstRes.ok) {
+                    const firstData = await firstRes.json().catch(() => null);
+                    const firstItems = Array.isArray(firstData?.items) ? firstData.items : [];
+                    setItems(firstItems);
+                }
+                setIsLoading(false);
+
+                const restRes = await fetch('/api/posts?limit=12&offset=12', { signal: ac.signal });
+                if (!restRes.ok) return;
+                const restData = await restRes.json().catch(() => null);
+                const restItems = Array.isArray(restData?.items) ? restData.items : [];
+                if (restItems.length === 0) return;
+                setItems(prev => {
+                    const seen = new Set(prev.map(x => x.slug));
+                    const merged = [...prev];
+                    for (const it of restItems) {
+                        if (!it?.slug || seen.has(it.slug)) continue;
+                        seen.add(it.slug);
+                        merged.push(it);
+                    }
+                    return merged;
+                });
+            } catch {
                 setIsLoading(false);
             }
         };
 
         loadPosts();
+        return () => ac.abort();
     }, []);
+
+    useEffect(() => {
+        if (isLoading) return;
+        if (isGalaxyActive) return;
+
+        let cancelled = false;
+        const activate = () => {
+            if (cancelled) return;
+            setIsGalaxyActive(true);
+        };
+
+        const w = window as unknown as {
+            requestIdleCallback?: (cb: () => void, opts?: { timeout?: number }) => number
+            cancelIdleCallback?: (id: number) => void
+        };
+
+        const id = typeof w.requestIdleCallback === 'function'
+            ? w.requestIdleCallback(activate, { timeout: 600 })
+            : window.setTimeout(activate, 180);
+
+        return () => {
+            cancelled = true;
+            if (typeof w.cancelIdleCallback === 'function') {
+                w.cancelIdleCallback(id as unknown as number);
+            } else {
+                window.clearTimeout(id as unknown as number);
+            }
+        };
+    }, [isLoading, isGalaxyActive]);
 
     const openArticle = useCallback((slug: string) => {
         router.push(`/article/${slug}`);
@@ -117,7 +182,7 @@ export default function ArticlePage() {
     return (
         <div className="relative min-h-screen bg-black text-white  overflow-hidden">
             <div className="absolute inset-0">
-                <GalaxyBackground />
+                {isGalaxyActive ? <GalaxyBackground /> : null}
             </div>
             <div className="relative z-20 px-4 py-8 sm:px-6 sm:py-10">
                 <div className="mx-auto w-full max-w-6xl">
@@ -191,7 +256,7 @@ const PostCard = memo(function PostCard(props: {
 }) {
     const { item, isCommentsOpen, isLikesOpen, onOpen, onToggleComments, onToggleLikes, comments, likes, isCommentsLoading, isLikesLoading } = props;
 
-    const createdAtLabel = useMemo(() => new Date(item.created_at).toLocaleString(), [item.created_at]);
+    const createdAtLabel = useMemo(() => formatDate(item.created_at), [item.created_at]);
     const hasPanelOpen = isCommentsOpen || isLikesOpen;
     const commentsCount = Array.isArray(comments) ? comments.length : null;
     const likesCount = Array.isArray(likes) ? likes.length : null;
@@ -290,7 +355,7 @@ const PostCard = memo(function PostCard(props: {
 
 const CommentRow = memo(function CommentRow(props: { item: CommentItem }) {
     const { item } = props;
-    const createdAtLabel = useMemo(() => new Date(item.created_at).toLocaleString(), [item.created_at]);
+    const createdAtLabel = useMemo(() => formatDate(item.created_at), [item.created_at]);
     return (
         <div className="rounded-xl border border-white/10 bg-white/5 p-3">
             <div className="flex items-center justify-between gap-3">
@@ -304,7 +369,7 @@ const CommentRow = memo(function CommentRow(props: { item: CommentItem }) {
 
 const LikeRow = memo(function LikeRow(props: { item: LikeItem }) {
     const { item } = props;
-    const createdAtLabel = useMemo(() => new Date(item.created_at).toLocaleString(), [item.created_at]);
+    const createdAtLabel = useMemo(() => formatDate(item.created_at), [item.created_at]);
     return (
         <div className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/5 p-3">
             <div className="min-w-0 truncate text-xs font-medium text-white/80">{item.author}</div>
