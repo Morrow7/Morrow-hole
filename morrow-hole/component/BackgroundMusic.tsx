@@ -70,8 +70,8 @@ export default function BackgroundMusic() {
       <button
         onClick={togglePlay}
         className={`group p-3 rounded-full backdrop-blur-md transition-all duration-300 shadow-lg border border-white/10 ${isPlaying
-            ? "bg-white/20 text-white hover:bg-white/30 hover:scale-105"
-            : "bg-black/20 text-white/70 hover:bg-white/10 hover:text-white"
+          ? "bg-white/20 text-white hover:bg-white/30 hover:scale-105"
+          : "bg-black/20 text-white/70 hover:bg-white/10 hover:text-white"
           }`}
         title={isPlaying ? "暂停音乐" : "播放音乐"}
       >

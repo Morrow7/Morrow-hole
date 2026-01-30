@@ -10,7 +10,6 @@ export default function Home() {
     const go = useCallback((href: string) => router.push(href), [router]);
     const items = useMemo(() => ([
         { icon: <span>🏠</span>, label: 'Article', onClick: () => go('/article') },
-        { icon: <span>🎵</span>, label: 'Music', onClick: () => go('/music') },
         { icon: <span>👤</span>, label: 'Daily', onClick: () => go('/Daily') },
         { icon: <span>ℹ️</span>, label: 'About', onClick: () => go('/about') },
     ]), [go]);

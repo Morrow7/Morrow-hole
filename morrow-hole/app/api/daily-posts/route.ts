@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { getPool } from "@/lib/db"
 import type { ResultSetHeader, RowDataPacket } from "mysql2/promise"
+import path from "node:path"
 
 type DailyPostRow = RowDataPacket & {
   id: number
@@ -12,6 +13,26 @@ type DailyPostRow = RowDataPacket & {
   comments_count: number
   has_media: 0 | 1
 }
+
+const IMAGE_MIME_ALLOW = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "image/avif",
+])
+
+const VIDEO_MIME_ALLOW = new Set([
+  "video/mp4",
+  "video/webm",
+  "video/ogg",
+])
+
+const IMAGE_EXT_ALLOW = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif"])
+const VIDEO_EXT_ALLOW = new Set([".mp4", ".webm", ".ogv", ".ogg"])
+
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024
+const MAX_VIDEO_BYTES = 50 * 1024 * 1024
 
 async function requireGithubAuth(request: NextRequest) {
   const rawAuth = request.headers.get("authorization") ?? ""
@@ -84,13 +105,32 @@ export async function POST(request: NextRequest) {
     content = textRaw.trim()
     mediaType = modeRaw === "image" ? "image" : modeRaw === "video" ? "video" : "none"
 
-    if (file && typeof file !== "string") {
+    if (mediaType !== "none") {
+      if (!file || typeof file === "string") {
+        return NextResponse.json({ message: "missing_file" }, { status: 400 })
+      }
+
       const mime = typeof file.type === "string" ? file.type : ""
+      const ext = path.extname(file.name ?? "").toLowerCase()
+      const size = typeof file.size === "number" ? file.size : 0
+      const maxSize = mediaType === "image" ? MAX_IMAGE_BYTES : MAX_VIDEO_BYTES
+      if (size > maxSize) {
+        return NextResponse.json({ message: "file_too_large", maxBytes: maxSize }, { status: 413 })
+      }
+
+      if (mediaType === "image") {
+        if ((mime && !IMAGE_MIME_ALLOW.has(mime)) && !IMAGE_EXT_ALLOW.has(ext)) {
+          return NextResponse.json({ message: "unsupported_media_type", mediaType, mime, ext }, { status: 415 })
+        }
+      } else if (mediaType === "video") {
+        if ((mime && !VIDEO_MIME_ALLOW.has(mime)) && !VIDEO_EXT_ALLOW.has(ext)) {
+          return NextResponse.json({ message: "unsupported_media_type", mediaType, mime, ext }, { status: 415 })
+        }
+      }
+
       const ab = await file.arrayBuffer()
       mediaBlob = Buffer.from(ab)
       mediaMime = mime || null
-    } else {
-      mediaType = "none"
     }
   } else {
     const body = await request.json().catch(() => null)
