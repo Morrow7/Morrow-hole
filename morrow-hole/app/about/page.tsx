@@ -50,8 +50,7 @@ export default function ArticlePage() {
                 />
             </div>
             <div className="relative z-20 mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
-                <h1 className="text-2xl font-bold text-center sm:text-4xl">About</h1>
-                <div className="mt-6 flex flex-wrap items-start justify-center gap-6 sm:mt-10 sm:gap-10">
+                <div className="mt-1 flex flex-wrap items-start justify-center gap-6 sm:mt-10 sm:gap-10">
                     {isLoading ? null : friendLinks.map((item, index) => (
                         <div key={item.name} className="flex flex-col items-center">
                             <div className="w-2 h-2 rounded-full bg-white/70 shadow-[0_0_10px_rgba(255,255,255,0.45)]" />

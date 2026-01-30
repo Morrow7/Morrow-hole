@@ -256,7 +256,7 @@ export default function PixelSnow({
             depth: false
         });
 
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
         renderer.setSize(container.offsetWidth, container.offsetHeight);
         renderer.setClearColor(0x000000, 0);
         container.appendChild(renderer.domElement);
@@ -291,14 +291,21 @@ export default function PixelSnow({
         window.addEventListener('resize', handleResize);
 
         const startTime = performance.now();
+        let lastRenderTime = 0;
+        const minFrameInterval = 1000 / 30;
         const animate = () => {
             animationRef.current = requestAnimationFrame(animate);
 
             // Only render if visible
-            if (isVisibleRef.current) {
-                material.uniforms.uTime.value = (performance.now() - startTime) * 0.001;
-                renderer.render(scene, camera);
-            }
+            if (!isVisibleRef.current) return;
+            if (document.visibilityState === 'hidden') return;
+
+            const now = performance.now();
+            if (now - lastRenderTime < minFrameInterval) return;
+            lastRenderTime = now;
+
+            material.uniforms.uTime.value = (now - startTime) * 0.001;
+            renderer.render(scene, camera);
         };
         animate();
 

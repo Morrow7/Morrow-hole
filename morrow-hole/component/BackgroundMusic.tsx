@@ -17,14 +17,11 @@ export default function BackgroundMusic() {
       try {
         await audio.play();
       } catch {
-        console.log("Autoplay prevented, waiting for user interaction");
-
         // 如果自动播放失败，添加一次性事件监听器
         const playOnInteraction = async () => {
           try {
             await audio.play();
-          } catch (e) {
-            console.error("Playback failed", e);
+          } catch {
           }
           // 移除监听器
           window.removeEventListener('click', playOnInteraction);
@@ -88,12 +85,6 @@ export default function BackgroundMusic() {
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
         )}
       </button>
-      <style jsx global>{`
-            @keyframes music-bar {
-                0%, 100% { height: 4px; }
-                50% { height: 16px; }
-            }
-        `}</style>
     </div>
   );
 }

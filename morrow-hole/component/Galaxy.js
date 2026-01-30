@@ -260,9 +260,15 @@ export default function Galaxy({
 
         const mesh = new Mesh(gl, { geometry, program });
         let animateId;
+        let lastRenderTime = 0;
+        const minFrameInterval = 1000 / 30;
 
         function update(t) {
             animateId = requestAnimationFrame(update);
+            if (document.visibilityState === 'hidden') return;
+            if (t - lastRenderTime < minFrameInterval) return;
+            lastRenderTime = t;
+
             if (!disableAnimation) {
                 program.uniforms.uTime.value = t * 0.001;
                 program.uniforms.uStarSpeed.value = (t * 0.001 * starSpeed) / 10.0;

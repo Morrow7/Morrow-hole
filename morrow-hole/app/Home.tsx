@@ -3,15 +3,17 @@ import PixelSnow from '../component/PixeSnow';
 import ScrollReveal from '../component/ScrollReveal';
 import Dock from '../component/Dock';
 import { useRouter } from 'next/navigation';
+import { useCallback, useMemo } from 'react';
 
 export default function Home() {
     const router = useRouter();
-    const items = [
-        { icon: <span>🏠</span>, label: 'Article', onClick: () => router.push('/article') },
-        { icon: <span>🎵</span>, label: 'Music', onClick: () => router.push('/music') },
-        { icon: <span>👤</span>, label: 'Daily', onClick: () => router.push('/Daily') },
-        { icon: <span>ℹ️</span>, label: 'About', onClick: () => router.push('/about') },
-    ];
+    const go = useCallback((href: string) => router.push(href), [router]);
+    const items = useMemo(() => ([
+        { icon: <span>🏠</span>, label: 'Article', onClick: () => go('/article') },
+        { icon: <span>🎵</span>, label: 'Music', onClick: () => go('/music') },
+        { icon: <span>👤</span>, label: 'Daily', onClick: () => go('/Daily') },
+        { icon: <span>ℹ️</span>, label: 'About', onClick: () => go('/about') },
+    ]), [go]);
     return (
         <>
             <div className="relative w-full min-h-[100svh] overflow-hidden flex items-center justify-center">

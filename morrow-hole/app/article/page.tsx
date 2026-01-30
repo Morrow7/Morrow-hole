@@ -1,7 +1,7 @@
 "use client";
 import Galaxy from '../../component/Galaxy';
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 type PostItem = {
     id: number
@@ -12,7 +12,6 @@ type PostItem = {
 }
 
 export default function ArticlePage() {
-    const router = useRouter();
     const [items, setItems] = useState<PostItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -54,17 +53,32 @@ export default function ArticlePage() {
                 <div className="mx-auto w-full max-w-6xl">
                     <h1 className="text-2xl font-bold text-center sm:text-4xl">Article</h1>
                     <div className="mt-6 grid grid-cols-1 gap-4 sm:mt-8 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 lg:gap-8">
-                        {isLoading ? null : items.map(item => (
-                            <button
-                                key={item.id}
-                                onClick={() => router.push(`/article/${item.slug}`)}
-                                className="w-full rounded-2xl border border-white/10 bg-white/10 px-5 py-4 text-left backdrop-blur-md shadow-lg transition-all duration-300 hover:bg-white/20"
-                            >
-                                <div className="text-lg font-semibold text-white/90 sm:text-xl">{item.title}</div>
-                                <div className="mt-2 text-sm text-white/70">{item.summary}</div>
-                                <div className="mt-3 text-xs text-white/50">{new Date(item.created_at).toLocaleString()}</div>
-                            </button>
-                        ))}
+                        {isLoading ? (
+                            Array.from({ length: 9 }).map((_, i) => (
+                                <div
+                                    key={i}
+                                    className="w-full rounded-2xl border border-white/10 bg-white/10 px-5 py-4 text-left backdrop-blur-md shadow-lg"
+                                >
+                                    <div className="h-6 w-2/3 animate-pulse rounded bg-white/10" />
+                                    <div className="mt-3 h-4 w-full animate-pulse rounded bg-white/10" />
+                                    <div className="mt-2 h-4 w-5/6 animate-pulse rounded bg-white/10" />
+                                    <div className="mt-4 h-3 w-1/2 animate-pulse rounded bg-white/10" />
+                                </div>
+                            ))
+                        ) : (
+                            items.map(item => (
+                                <Link
+                                    key={item.id}
+                                    href={`/article/${item.slug}`}
+                                    prefetch
+                                    className="block w-full rounded-2xl border border-white/10 bg-white/10 px-5 py-4 text-left backdrop-blur-md shadow-lg transition-all duration-300 hover:bg-white/20"
+                                >
+                                    <div className="text-lg font-semibold text-white/90 sm:text-xl">{item.title}</div>
+                                    <div className="mt-2 text-sm text-white/70">{item.summary}</div>
+                                    <div className="mt-3 text-xs text-white/50">{new Date(item.created_at).toLocaleString()}</div>
+                                </Link>
+                            ))
+                        )}
                     </div>
                 </div>
             </div>
