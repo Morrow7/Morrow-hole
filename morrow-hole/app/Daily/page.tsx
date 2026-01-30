@@ -1,7 +1,7 @@
 "use client";
 import Galaxy from '../../component/Galaxy';
 import Image from 'next/image';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 
 type DailyPostItem = {
     id: number
@@ -46,9 +46,7 @@ export default function ArticlePage() {
     const [authorAvatarUrl, setAuthorAvatarUrl] = useState("");
     const [likedPostIds, setLikedPostIds] = useState<number[]>([]);
     const [commentBoxForId, setCommentBoxForId] = useState<number | null>(null);
-    const [commentDraft, setCommentDraft] = useState("");
     const [isCommentPosting, setIsCommentPosting] = useState(false);
-    const [commentError, setCommentError] = useState("");
     const [openCommentsForId, setOpenCommentsForId] = useState<number | null>(null);
     const [commentsByPostId, setCommentsByPostId] = useState<Record<number, DailyCommentItem[]>>({});
     const [loadingCommentsForId, setLoadingCommentsForId] = useState<number | null>(null);
@@ -283,17 +281,16 @@ export default function ArticlePage() {
         );
     };
 
-    const submitComment = async (postId: number) => {
+    const submitComment = useCallback(async (postId: number, draft: string) => {
         const token = typeof window !== "undefined" ? localStorage.getItem("token") ?? "" : "";
         if (!token || authStatus !== "authed") {
             setOauthError("请先登录后评论");
             startGithubLogin();
-            return;
+            return "请先登录后评论";
         }
-        const content = commentDraft.trim();
-        if (!content) return;
+        const content = draft.trim();
+        if (!content) return "请输入评论内容";
         setIsCommentPosting(true);
-        setCommentError("");
         try {
             const res = await fetch("/api/comments", {
                 method: "POST",
@@ -310,11 +307,9 @@ export default function ArticlePage() {
                     try { localStorage.removeItem("token"); } catch { }
                     setAuthStatus("error");
                     setOauthError("请先登录后评论");
-                    setCommentError("请先登录后评论");
-                    return;
+                    return "请先登录后评论";
                 }
-                setCommentError(msg || "评论失败");
-                return;
+                return msg || "评论失败";
             }
             const nextItem = data?.item as DailyCommentItem | null;
             if (nextItem && typeof nextItem === "object") {
@@ -330,12 +325,12 @@ export default function ArticlePage() {
                     return { ...it, comments_count: current + 1 };
                 })
             );
-            setCommentDraft("");
             setCommentBoxForId(null);
+            return null;
         } finally {
             setIsCommentPosting(false);
         }
-    };
+    }, [authStatus, startGithubLogin]);
 
     const loadCommentsForPost = useCallback(async (postId: number) => {
         setLoadingCommentsForId(postId);
@@ -462,8 +457,6 @@ export default function ArticlePage() {
                                                                 startGithubLogin();
                                                                 return;
                                                             }
-                                                            setCommentError("");
-                                                            setCommentDraft("");
                                                             setCommentBoxForId(prev => (prev === item.id ? null : item.id));
                                                         }}
                                                         className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-white/80 transition-all hover:bg-white/10"
@@ -512,37 +505,11 @@ export default function ArticlePage() {
                                                     </div>
                                                 ) : null}
                                                 {commentBoxForId === item.id ? (
-                                                    <div className="mt-3 rounded-xl border border-white/10 bg-white/5 p-3">
-                                                        {commentError ? <div className="text-xs text-red-400">{commentError}</div> : null}
-                                                        <textarea
-                                                            value={commentDraft}
-                                                            onChange={e => setCommentDraft(e.target.value)}
-                                                            placeholder="写下你的评论"
-                                                            rows={3}
-                                                            className="mt-2 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white outline-none"
-                                                        />
-                                                        <div className="mt-2 flex items-center justify-end gap-2">
-                                                            <button
-                                                                type="button"
-                                                                className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/80 transition-all hover:bg-white/10"
-                                                                onClick={() => {
-                                                                    setCommentError("");
-                                                                    setCommentDraft("");
-                                                                    setCommentBoxForId(null);
-                                                                }}
-                                                            >
-                                                                取消
-                                                            </button>
-                                                            <button
-                                                                type="button"
-                                                                disabled={isCommentPosting || !commentDraft.trim()}
-                                                                className="rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm text-white/80 transition-all hover:bg-white/20 disabled:opacity-50"
-                                                                onClick={() => submitComment(item.id)}
-                                                            >
-                                                                {isCommentPosting ? '发送中...' : '发送'}
-                                                            </button>
-                                                        </div>
-                                                    </div>
+                                                    <DailyCommentComposer
+                                                        isPosting={isCommentPosting}
+                                                        onCancel={() => setCommentBoxForId(null)}
+                                                        onSubmit={(draft) => submitComment(item.id, draft)}
+                                                    />
                                                 ) : null}
                                             </div>
                                         ))
@@ -680,3 +647,55 @@ export default function ArticlePage() {
         </div >
     )
 }
+
+const DailyCommentComposer = memo(function DailyCommentComposer(props: {
+    isPosting: boolean
+    onCancel: () => void
+    onSubmit: (draft: string) => Promise<string | null>
+}) {
+    const { isPosting, onCancel, onSubmit } = props;
+    const [draft, setDraft] = useState("");
+    const [error, setError] = useState("");
+
+    return (
+        <div className="mt-3 rounded-xl border border-white/10 bg-white/5 p-3">
+            {error ? <div className="text-xs text-red-400">{error}</div> : null}
+            <textarea
+                value={draft}
+                onChange={e => setDraft(e.target.value)}
+                placeholder="写下你的评论"
+                rows={3}
+                className="mt-2 w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white outline-none"
+            />
+            <div className="mt-2 flex items-center justify-end gap-2">
+                <button
+                    type="button"
+                    className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/80 transition-all hover:bg-white/10"
+                    onClick={() => {
+                        setError("");
+                        setDraft("");
+                        onCancel();
+                    }}
+                >
+                    取消
+                </button>
+                <button
+                    type="button"
+                    disabled={isPosting || !draft.trim()}
+                    className="rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm text-white/80 transition-all hover:bg-white/20 disabled:opacity-50"
+                    onClick={async () => {
+                        const msg = await onSubmit(draft);
+                        if (msg) {
+                            setError(msg);
+                            return;
+                        }
+                        setError("");
+                        setDraft("");
+                    }}
+                >
+                    {isPosting ? '发送中...' : '发送'}
+                </button>
+            </div>
+        </div>
+    );
+});

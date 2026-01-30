@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import ReactMarkdown from "react-markdown";
@@ -32,7 +32,6 @@ export default function ArticleDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [comments, setComments] = useState<CommentItem[]>([]);
   const [isCommentsLoading, setIsCommentsLoading] = useState(true);
-  const [commentContent, setCommentContent] = useState("");
   const [isPosting, setIsPosting] = useState(false);
   const [commentError, setCommentError] = useState("");
   const [authorName, setAuthorName] = useState("");
@@ -54,7 +53,7 @@ export default function ArticleDetailPage() {
       .catch(() => { });
   }, [oauthClientId]);
 
-  const handleGithubLogin = () => {
+  const handleGithubLogin = useCallback(() => {
     const clientId = oauthClientId.trim();
     if (!clientId) {
       setAuthStatus("error");
@@ -69,7 +68,7 @@ export default function ArticleDetailPage() {
       `${window.location.origin}/api/auth/callback`;
     const authUrl = `https://github.com/login/oauth/authorize?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent("read:user")}`;
     window.location.href = authUrl;
-  };
+  }, [oauthClientId]);
 
   useEffect(() => {
     const token = typeof window !== "undefined" ? localStorage.getItem("token") ?? "" : "";
@@ -123,7 +122,7 @@ export default function ArticleDetailPage() {
     loadComments();
   }, [loadComments]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async (draft: string) => {
     if (!slug) return;
     const token = typeof window !== "undefined" ? localStorage.getItem("token") ?? "" : "";
     if (!token || authStatus !== "authed") {
@@ -131,7 +130,7 @@ export default function ArticleDetailPage() {
       handleGithubLogin();
       return;
     }
-    const contentText = commentContent.trim();
+    const contentText = draft.trim();
     if (!contentText) {
       setCommentError("请输入评论内容");
       return;
@@ -165,17 +164,59 @@ export default function ArticleDetailPage() {
       } else {
         await loadComments();
       }
-      setCommentContent("");
+      return true;
     } finally {
       setIsPosting(false);
     }
-  };
+  }, [authStatus, handleGithubLogin, loadComments, slug]);
 
-  const getInitial = (name: string) => {
+  const markdown = useMemo(() => <ReactMarkdown>{content}</ReactMarkdown>, [content]);
+
+  const commentsView = useMemo(() => {
+    if (isCommentsLoading) {
+      return (
+        <div className="space-y-3">
+          <div className="h-20 animate-pulse rounded-2xl bg-white/5" />
+          <div className="h-20 animate-pulse rounded-2xl bg-white/5" />
+        </div>
+      );
+    }
+    if (comments.length === 0) {
+      return (
+        <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-white/55">
+          暂无评论
+        </div>
+      );
+    }
+    return (
+      <>
+        {comments.map(item => (
+          <div key={item.id} className="rounded-2xl border border-white/10 bg-black/20 p-4">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/10 text-sm font-semibold text-white/80">
+                {getInitial(item.author)}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <div className="text-sm font-medium text-white/85">{item.author}</div>
+                  <div className="text-xs text-white/40">{new Date(item.created_at).toLocaleString()}</div>
+                </div>
+                <div className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-white/85">
+                  {item.content}
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </>
+    );
+  }, [comments, isCommentsLoading]);
+
+  function getInitial(name: string) {
     const t = (name || "").trim();
     if (!t) return "A";
     return t.slice(0, 1).toUpperCase();
-  };
+  }
 
   return (
     <div className="relative min-h-[100svh] bg-black text-white overflow-hidden">
@@ -207,7 +248,7 @@ export default function ArticleDetailPage() {
                 {detail?.title ?? ""}
               </h1>
               <div className="article-md mt-6 text-white/90">
-                <ReactMarkdown>{content}</ReactMarkdown>
+                {markdown}
               </div>
             </>
           )}
@@ -220,35 +261,7 @@ export default function ArticleDetailPage() {
           </div>
 
           <div className="mt-5 space-y-3">
-            {isCommentsLoading ? (
-              <div className="space-y-3">
-                <div className="h-20 animate-pulse rounded-2xl bg-white/5" />
-                <div className="h-20 animate-pulse rounded-2xl bg-white/5" />
-              </div>
-            ) : comments.length === 0 ? (
-              <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-white/55">
-                暂无评论
-              </div>
-            ) : (
-              comments.map(item => (
-                <div key={item.id} className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/10 text-sm font-semibold text-white/80">
-                      {getInitial(item.author)}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                        <div className="text-sm font-medium text-white/85">{item.author}</div>
-                        <div className="text-xs text-white/40">{new Date(item.created_at).toLocaleString()}</div>
-                      </div>
-                      <div className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-white/85">
-                        {item.content}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
+            {commentsView}
           </div>
 
           <div className="mt-6 rounded-2xl border border-white/10 bg-black/20 p-4">
@@ -290,26 +303,13 @@ export default function ArticleDetailPage() {
               )}
             </div>
 
-            <div className="mt-4">
-              {commentError ? <div className="mb-2 text-xs text-red-400">{commentError}</div> : null}
-              <textarea
-                value={commentContent}
-                onChange={e => setCommentContent(e.target.value)}
-                placeholder={authStatus === "authed" ? "写下你的评论" : "登录后才能评论"}
-                rows={4}
-                className="w-full resize-none rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm leading-6 text-white outline-none transition-all focus:border-white/20 focus:bg-black/40"
-                disabled={authStatus !== "authed"}
-              />
-            </div>
-            <div className="mt-3 flex justify-end">
-              <button
-                onClick={handleSubmit}
-                disabled={isPosting || authStatus !== "authed"}
-                className="rounded-full border border-white/10 bg-white/10 px-5 py-2 text-sm text-white/85 transition-all hover:bg-white/20 disabled:opacity-50"
-              >
-                {isPosting ? "提交中..." : "提交评论"}
-              </button>
-            </div>
+            <CommentComposer
+              disabled={authStatus !== "authed"}
+              isPosting={isPosting}
+              placeholder={authStatus === "authed" ? "写下你的评论" : "登录后才能评论"}
+              error={commentError}
+              onSubmit={handleSubmit}
+            />
           </div>
         </div>
       </div>
@@ -398,3 +398,43 @@ export default function ArticleDetailPage() {
     </div>
   );
 }
+
+const CommentComposer = memo(function CommentComposer(props: {
+  disabled: boolean
+  isPosting: boolean
+  placeholder: string
+  error: string
+  onSubmit: (draft: string) => Promise<true | void>
+}) {
+  const { disabled, isPosting, placeholder, error, onSubmit } = props;
+  const [draft, setDraft] = useState("");
+
+  return (
+    <>
+      <div className="mt-4">
+        {error ? <div className="mb-2 text-xs text-red-400">{error}</div> : null}
+        <textarea
+          value={draft}
+          onChange={e => setDraft(e.target.value)}
+          placeholder={placeholder}
+          rows={4}
+          className="w-full resize-none rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm leading-6 text-white outline-none transition-all focus:border-white/20 focus:bg-black/40"
+          disabled={disabled}
+        />
+      </div>
+      <div className="mt-3 flex justify-end">
+        <button
+          onClick={async () => {
+            if (isPosting) return;
+            const ok = await onSubmit(draft);
+            if (ok) setDraft("");
+          }}
+          disabled={isPosting || disabled}
+          className="rounded-full border border-white/10 bg-white/10 px-5 py-2 text-sm text-white/85 transition-all hover:bg-white/20 disabled:opacity-50"
+        >
+          {isPosting ? "提交中..." : "提交评论"}
+        </button>
+      </div>
+    </>
+  );
+});
