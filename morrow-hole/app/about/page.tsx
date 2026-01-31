@@ -29,7 +29,6 @@ export default function ArticlePage() {
             'Next.js',
             'React',
             'TypeScript',
-            'Tailwind CSS',
             'MySQL',
             'Springboot',
             'Java',
